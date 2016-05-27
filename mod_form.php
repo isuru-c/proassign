@@ -50,7 +50,7 @@ class mod_proassign_mod_form extends moodleform_mod {
         $mform->addElement('header', 'general', get_string('general', 'form'));
 
         // Adding the standard "name" field.
-        $mform->addElement('text', 'name', get_string('proassignname', 'proassign'), array('size' => '64'));
+        $mform->addElement('text', 'name', 'Assignment name', array('size' => '64'));
         if (!empty($CFG->formatstringstriptags)) {
             $mform->setType('name', PARAM_TEXT);
         } else {
@@ -58,7 +58,7 @@ class mod_proassign_mod_form extends moodleform_mod {
         }
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
-        $mform->addHelpButton('name', 'proassignname', 'proassign');
+        //$mform->addHelpButton('name', 'proassignname', 'proassign');
 
         // Adding the standard "intro" and "introformat" fields.
         if ($CFG->branch >= 29) {
@@ -69,10 +69,24 @@ class mod_proassign_mod_form extends moodleform_mod {
 
         // Adding the rest of proassign settings, spreading all them into this fieldset
         // ... or adding more fieldsets ('header' elements) if needed for better logic.
-        $mform->addElement('static', 'label1', 'proassignsetting1', 'Your proassign fields go here. Replace me!');
+        //$mform->addElement('static', 'label1', 'proassignsetting1', 'Your proassign fields go here. Replace me!');
 
-        $mform->addElement('header', 'proassignfieldset', get_string('proassignfieldset', 'proassign'));
-        $mform->addElement('static', 'label2', 'proassignsetting2', 'Your proassign fields go here. Replace me!');
+        //$mform->addElement('header', 'evaluation', 'Evaluation');
+        //$mform->addElement('advcheckbox', 'evaluatesubmission', 'Evaluation', 'Evaluate the submission using test cases', array('group' => 1), array(0, 1));
+		//$mform->addElement('static', 'label2', 'Note', 'You can add various test cases after creation of the assignment');
+		
+		$mform->addElement('header', 'submissionperiod', 'Submission period');
+        $secondsday=24*60*60;
+        $now = time();
+        $inittime = round($now / $secondsday) * $secondsday+5*60;
+        $endtime = $inittime + (8*$secondsday) - 5*60;
+        // startdate
+        $mform->addElement('date_time_selector', 'startdate', 'Start date', array('optional'=>true));
+        $mform->setDefault('startdate', 0);
+        $mform->setAdvanced('startdate');
+        // duedate
+        $mform->addElement('date_time_selector', 'duedate', 'Due date', array('optional'=>true));
+        $mform->setDefault('duedate', $endtime);
 
         // Add standard grading elements.
         $this->standard_grading_coursemodule_elements();

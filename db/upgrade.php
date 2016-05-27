@@ -150,17 +150,26 @@ function xmldb_proassign_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2007040200, 'proassign');
     }
 
-    /*
-     * And that's all. Please, examine and understand the 3 example blocks above. Also
-     * it's interesting to look how other modules are using this script. Remember that
-     * the basic idea is to have "blocks" of code (each one being executed only once,
-     * when the module version (version.php) is updated.
-     *
-     * Lines above (this included) MUST BE DELETED once you get the first version of
-     * yout module working. Each time you need to modify something in the module (DB
-     * related, you'll raise the version and add one upgrade block here.
-     *
-     * Finally, return of upgrade result (true, all went good) to Moodle.
-     */
+    if($oldversion < 2016052700){
+		
+		$table = new xmldb_table('proassign');
+		$field = new xmldb_field( 'startdate', XMLDB_TYPE_INTEGER, '10'
+                , XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'introformat' );
+		
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign');
+		$field = new xmldb_field( 'duedate', XMLDB_TYPE_INTEGER, '10'
+                , XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'startdate' );
+		
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		upgrade_mod_savepoint(true, 2016052700, 'proassign');
+	}
+		
     return true;
 }
