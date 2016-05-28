@@ -29,55 +29,39 @@
 
 require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
 require_once(dirname(__FILE__).'/lib.php');
+require_once($CFG->dirroot . '/mod/proassign/locallib.php');
 
-$id = optional_param('id', 0, PARAM_INT); // Course_module ID, or
-$n  = optional_param('n', 0, PARAM_INT);  // ... proassign instance ID - it should be named as the first character of the module.
+$id = optional_param('id', 0, PARAM_INT); // Course_module ID
 
 if ($id) {
-    $cm         = get_coursemodule_from_id('proassign', $id, 0, false, MUST_EXIST);
-    $course     = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
-    $proassign  = $DB->get_record('proassign', array('id' => $cm->instance), '*', MUST_EXIST);
-} else if ($n) {
-    $proassign  = $DB->get_record('proassign', array('id' => $n), '*', MUST_EXIST);
-    $course     = $DB->get_record('course', array('id' => $proassign->course), '*', MUST_EXIST);
-    $cm         = get_coursemodule_from_instance('proassign', $proassign->id, $course->id, false, MUST_EXIST);
+    $cm         = get_coursemodule_from_id('proassign', $id, 0, false, MUST_EXIST); // Course module
+    $course     = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST); // Course ralated to this instant
+    $proassign  = $DB->get_record('proassign', array('id' => $cm->instance), '*', MUST_EXIST); // Proassign instant
 } else {
     error('You must specify a course_module ID or an instance ID');
 }
 
 require_login($course, true, $cm);
 
-$event = \mod_proassign\event\course_module_viewed::create(array(
-    'objectid' => $PAGE->cm->instance,
-    'context' => $PAGE->context,
-));
-$event->add_record_snapshot('course', $PAGE->course);
-$event->add_record_snapshot($PAGE->cm->modname, $proassign);
-$event->trigger();
-
-// Print the page header.
-
 $PAGE->set_url('/mod/proassign/view.php', array('id' => $cm->id));
 $PAGE->set_title(format_string($proassign->name));
 $PAGE->set_heading(format_string($course->fullname));
 
-/*
- * Other things you may want to set - remove if not needed.
- * $PAGE->set_cacheable(false);
- * $PAGE->set_focuscontrol('some-html-id');
- * $PAGE->add_body_class('proassign-'.$somevar);
- */
 
-// Output starts here.
+$proassign = new proassign($context, $cm, $course);
+
+$action = optional_param('action', '', PARAM_TEXT);
+
+
+echo $proassign->view(optional_param('action', '', PARAM_TEXT));
+
 echo $OUTPUT->header();
 
-// Conditions to show the intro can change to look for own settings or whatever.
-if ($proassign->intro) {
-    echo $OUTPUT->box(format_module_intro('proassign', $proassign, $cm->id), 'generalbox mod_introbox', 'proassignintro');
-}
+echo $OUTPUT->box(format_module_intro('proassign', $proassign, $cm->id), 'generalbox mod_introbox', 'proassignintro');
 
 // Replace the following lines with you own code.
-echo $OUTPUT->heading('Yay! It works!');
+echo $OUTPUT->heading('Yay! It works!' . $action);
+print_r($action);
 
 // Finish the page.
 echo $OUTPUT->footer();

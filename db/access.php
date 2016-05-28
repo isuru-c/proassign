@@ -48,35 +48,97 @@ defined('MOODLE_INTERNAL') || die();
 
 // Modify capabilities as needed and remove this comment.
 $capabilities = array(
-    'mod/proassign:addinstance' => array(
-        'riskbitmask' => RISK_XSS,
-        'captype' => 'write',
-        'contextlevel' => CONTEXT_COURSE,
-        'archetypes' => array(
-            'editingteacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW
+            'mod/proassign:view' => array ( // Allows to view complete proassign description.
+                'riskbitmask' => 0,
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array (
+                        'guest' => CAP_PREVENT,
+                        'student' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'coursecreator' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
         ),
-        'clonepermissionsfrom' => 'moodle/course:manageactivities'
-    ),
 
-    'mod/proassign:view' => array(
-        'captype' => 'read',
-        'contextlevel' => CONTEXT_MODULE,
-        'legacy' => array(
-            'guest' => CAP_ALLOW,
-            'student' => CAP_ALLOW,
-            'teacher' => CAP_ALLOW,
-            'editingteacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW
-        )
-    ),
+        'mod/proassign:submit' => array ( // Allows to submit a proassign assingment.
+                'riskbitmask' => 0,
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array (
+                        'guest' => CAP_PROHIBIT,
+                        'student' => CAP_ALLOW,
+                        'teacher' => CAP_PREVENT,
+                        'editingteacher' => CAP_ALLOW,
+                        'coursecreator' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
 
-    'mod/proassign:submit' => array(
-        'riskbitmask' => RISK_SPAM,
-        'captype' => 'write',
-        'contextlevel' => CONTEXT_MODULE,
-        'legacy' => array(
-            'student' => CAP_ALLOW
-        )
-    ),
+        'mod/proassign:grade' => array ( // Allows to grade a proassign submission.
+                'riskbitmask' => RISK_PERSONAL,
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array (
+                        'guest' => CAP_PROHIBIT,
+                        'student' => CAP_PREVENT,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'coursecreator' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+        'mod/proassign:similarity' => array ( // Allows to show submissions similarity.
+                'riskbitmask' => RISK_PERSONAL,
+                'captype' => 'read',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array (
+                        'guest' => CAP_PROHIBIT,
+                        'student' => CAP_PREVENT,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW,
+                        'coursecreator' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+        'mod/proassign:addinstance' => array ( // Allows to add new proassign instance.
+                'riskbitmask' => RISK_SPAM | RISK_XSS,
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array (
+                        'guest' => CAP_PROHIBIT,
+                        'student' => CAP_PROHIBIT,
+                        'teacher' => CAP_PREVENT,
+                        'editingteacher' => CAP_ALLOW,
+                        'coursecreator' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+        'mod/proassign:manage' => array ( // Allows to manage a proassign instance.
+                'riskbitmask' => RISK_SPAM | RISK_XSS | RISK_PERSONAL,
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array (
+                        'guest' => CAP_PROHIBIT,
+                        'student' => CAP_PROHIBIT,
+                        'teacher' => CAP_PREVENT,
+                        'editingteacher' => CAP_ALLOW,
+                        'coursecreator' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
+        'mod/proassign:setjails' => array ( // Allows to set the jails for a proassign instance.
+                'riskbitmask' => RISK_PERSONAL,
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_MODULE,
+                'archetypes' => array (
+                        'guest' => CAP_PROHIBIT,
+                        'student' => CAP_PROHIBIT,
+                        'teacher' => CAP_PROHIBIT,
+                        'editingteacher' => CAP_ALLOW,
+                        'coursecreator' => CAP_ALLOW,
+                        'manager' => CAP_ALLOW
+                )
+        ),
 );
