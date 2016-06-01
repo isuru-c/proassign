@@ -170,6 +170,63 @@ function xmldb_proassign_upgrade($oldversion) {
 		
 		upgrade_mod_savepoint(true, 2016052700, 'proassign');
 	}
+	
+	if($oldversion < 2016060100){
+				
+		$table = new xmldb_table('proassign_submission');
+		$dbman->add_table($table);	
+		
+		
+		$table = new xmldb_table('proassign_submission');
+		$field = new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', null);
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_submission');
+		$field = new xmldb_field('assignment', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'id');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_submission');
+		$field = new xmldb_field('userid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'assignment');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_submission');
+		$field = new xmldb_field('timecreated', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'userid');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_submission');
+		$field = new xmldb_field('timemodified', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'timecreated');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }		
+		
+		$table = new xmldb_table('proassign_submission');
+		$field = new xmldb_field('status', XMLDB_TYPE_TEXT, 'medium', null, null, null, null, 'timemodified');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_submission');
+		$field = new xmldb_field('attemptnumber', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'status');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_submission');
+		$field = new xmldb_field('latest', XMLDB_TYPE_INTEGER, '2', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'attemptnumber');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		upgrade_mod_savepoint(true, 2016060100, 'proassign');
+	}
 		
     return true;
 }

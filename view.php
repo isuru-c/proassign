@@ -47,6 +47,7 @@ $PAGE->set_url('/mod/proassign/view.php', array('id' => $cm->id));
 $PAGE->set_title(format_string($proassign->name));
 $PAGE->set_heading(format_string($course->fullname));
 
+$context = context_module::instance($cm->id);
 
 $proassign = new proassign($context, $cm, $course);
 
@@ -55,13 +56,13 @@ $action = optional_param('action', '', PARAM_TEXT);
 
 echo $proassign->view(optional_param('action', '', PARAM_TEXT));
 
-echo $OUTPUT->header();
+//echo $OUTPUT->header();
 
-echo $OUTPUT->box(format_module_intro('proassign', $proassign, $cm->id), 'generalbox mod_introbox', 'proassignintro');
+//echo $OUTPUT->box(format_module_intro('proassign', $proassign, $cm->id), 'generalbox mod_introbox', 'proassignintro');
 
 // Replace the following lines with you own code.
-echo $OUTPUT->heading('Yay! It works!' . $action);
-print_r($action);
+//echo $OUTPUT->heading('Yay! It works!' . $action);
+//print_r($action);
 
 // Finish the page.
-echo $OUTPUT->footer();
+//echo $OUTPUT->footer();

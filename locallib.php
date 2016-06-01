@@ -1,31 +1,10 @@
-<?php
-// This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
-/**
- * Internal library of functions for module proassign
- *
- * All the proassign specific functions, needed to implement the module
- * logic, should go here. Never include this file from your lib.php!
- *
- * @package    mod_proassign
- * @copyright  2015 Your Name
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
+12<?php
 
 defined('MOODLE_INTERNAL') || die();
+
+
+require_once($CFG->dirroot . '/mod/proassign/renderable.php');
+require_once($CFG->dirroot . '/mod/proassign/renderer.php');
 
 class proassign{
 	
@@ -330,33 +309,31 @@ class proassign{
 
         $instance = $this->get_instance();
 
-        $output = '';
+        $out = '';
 
         $postfix = '';
-        if ($this->has_visible_attachments()) {
-            $postfix = $this->render_area_files('mod_assign', ASSIGN_INTROATTACHMENT_FILEAREA, 0);
-        }
-        $output .= $this->get_renderer()->render(new proassign_header($instance,
-                                                      $this->get_context(),
-                                                      $this->show_intro(),
-                                                      $this->get_course_module()->id,
-                                                      '', '', $postfix));
+		
+        /*if ($this->has_visible_attachments()) {
+            $postfix = $this->render_area_files('mod_proassign', ASSIGN_INTROATTACHMENT_FILEAREA, 0);
+        }*/
+		
+        $out .= $this->get_renderer()->render(new proassign_header($instance, $this->get_context(), $this->show_intro(), $this->get_course_module()->id, '', '', $postfix));
 
         // Display plugin specific headers.
-        $plugins = array_merge($this->get_submission_plugins(), $this->get_feedback_plugins());
+        /*$plugins = array_merge($this->get_submission_plugins(), $this->get_feedback_plugins());
         foreach ($plugins as $plugin) {
             if ($plugin->is_enabled() && $plugin->is_visible()) {
                 $o .= $this->get_renderer()->render(new assign_plugin_header($plugin));
             }
-        }
+        }*/
 
         if ($this->can_view_grades()) {
-            $draft = ASSIGN_SUBMISSION_STATUS_DRAFT;
-            $submitted = ASSIGN_SUBMISSION_STATUS_SUBMITTED;
+            $draft = 'draft';
+            $submitted = 'submitted';
 
             // Group selector will only be displayed if necessary.
-            $currenturl = new moodle_url('/mod/assign/view.php', array('id' => $this->get_course_module()->id));
-            $o .= groups_print_activity_menu($this->get_course_module(), $currenturl->out(), true);
+            $currenturl = new moodle_url('/mod/proassign/view.php', array('id' => $this->get_course_module()->id));
+            $out .= groups_print_activity_menu($this->get_course_module(), $currenturl->out(), true);
 
             $activitygroup = groups_get_activity_group($this->get_course_module());
 
@@ -364,7 +341,7 @@ class proassign{
                 $defaultteammembers = $this->get_submission_group_members(0, true);
                 $warnofungroupedusers = (count($defaultteammembers) > 0 && $instance->preventsubmissionnotingroup);
 
-                $summary = new assign_grading_summary($this->count_teams($activitygroup),
+                $summary = new proassign_grading_summary($this->count_teams($activitygroup),
                                                       $instance->submissiondrafts,
                                                       $this->count_submissions_with_status($draft),
                                                       $this->is_any_submission_plugin_enabled(),
@@ -375,11 +352,11 @@ class proassign{
                                                       $this->count_submissions_need_grading(),
                                                       $instance->teamsubmission,
                                                       $warnofungroupedusers);
-                $o .= $this->get_renderer()->render($summary);
+                $out .= $this->get_renderer()->render($summary);
             } else {
                 // The active group has already been updated in groups_print_activity_menu().
                 $countparticipants = $this->count_participants($activitygroup);
-                $summary = new assign_grading_summary($countparticipants,
+                $summary = new proassign_grading_summary($countparticipants,
                                                       $instance->submissiondrafts,
                                                       $this->count_submissions_with_status($draft),
                                                       $this->is_any_submission_plugin_enabled(),
@@ -390,24 +367,380 @@ class proassign{
                                                       $this->count_submissions_need_grading(),
                                                       $instance->teamsubmission,
                                                       false);
-                $o .= $this->get_renderer()->render($summary);
+                $out .= $this->get_renderer()->render($summary);
             }
         }
+		
+		
         $grade = $this->get_user_grade($USER->id, false);
+		print_r("Here");
         $submission = $this->get_user_submission($USER->id, false);
-
+		
         if ($this->can_view_submission($USER->id)) {
-            $o .= $this->view_student_summary($USER, true);
+            $out .= $this->view_student_summary($USER, true);
         }
+		
+        $out .= $this->view_footer();
 
-        $o .= $this->view_footer();
-
-        \mod_assign\event\submission_status_viewed::create_from_assign($this)->trigger();
+        \mod_proassign\event\submission_status_viewed::create_from_proassign($this)->trigger();
 
         return $o;
     }
 	
+	public function can_view_submission($userid) {
+        global $USER;
+
+        if (!$this->is_active_user($userid) && !has_capability('moodle/course:viewsuspendedusers', $this->context)) {
+            return false;
+        }
+        if (has_any_capability(array('mod/proassign:viewgrades', 'mod/proassign:grade'), $this->context)) {
+            return true;
+        }
+        if (!is_enrolled($this->get_course_context(), $userid)) {
+            return false;
+        }
+        if ($userid == $USER->id && has_capability('mod/proassign:submit', $this->context)) {
+            return true;
+        }
+        return false;
+    }
 	
+	public function is_active_user($userid) {
+        return !in_array($userid, get_suspended_userids($this->context, true));
+    }
+	
+	public function get_user_grade($userid, $create, $attemptnumber=-1) {
+        global $DB, $USER;
+
+        // If the userid is not null then use userid.
+        if (!$userid) {
+            $userid = $USER->id;
+        }
+        $submission = null;
+
+        $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid);
+        if ($attemptnumber < 0 || $create) {
+            // Make sure this grade matches the latest submission attempt.
+            $submission = $this->get_user_submission($userid, true);
+            if ($submission) {
+                $attemptnumber = $submission->attemptnumber;
+            }
+        }
+
+        if ($attemptnumber >= 0) {
+            $params['attemptnumber'] = $attemptnumber;
+        }
+
+        $grades = $DB->get_records('proassign_grades', $params, 'attemptnumber DESC', '*', 0, 1);
+
+        if ($grades) {
+            return reset($grades);
+        }
+        if ($create) {
+            $grade = new stdClass();
+            $grade->assignment   = $this->get_instance()->id;
+            $grade->userid       = $userid;
+            $grade->timecreated = time();
+            // If we are "auto-creating" a grade - and there is a submission
+            // the new grade should not have a more recent timemodified value
+            // than the submission.
+            if ($submission) {
+                $grade->timemodified = $submission->timemodified;
+            } else {
+                $grade->timemodified = $grade->timecreated;
+            }
+            $grade->grade = -1;
+            $grade->grader = $USER->id;
+            if ($attemptnumber >= 0) {
+                $grade->attemptnumber = $attemptnumber;
+            }
+
+            $gid = $DB->insert_record('proassign_grades', $grade);
+            $grade->id = $gid;
+            return $grade;
+        }
+        return false;
+    }
+	
+	
+	public function get_user_submission($userid, $create, $attemptnumber=-1) {
+        global $DB, $USER;
+
+        if (!$userid) {
+            $userid = $USER->id;
+        }
+        // If the userid is not null then use userid.
+        $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid, 'groupid'=>0);
+        if ($attemptnumber >= 0) {
+            $params['attemptnumber'] = $attemptnumber;
+        }
+
+        // Only return the row with the highest attemptnumber.
+        $submission = null;print("dssdf");
+        $submissions = $DB->get_records('proassign_submission', $params, 'attemptnumber DESC', '*', 0, 1);
+        if ($submissions) {
+            $submission = reset($submissions);
+        }
+
+        if ($submission) {
+            return $submission;
+        }
+        if ($create) {
+            $submission = new stdClass();
+            $submission->assignment   = $this->get_instance()->id;
+            $submission->userid       = $userid;
+            $submission->timecreated = time();
+            $submission->timemodified = $submission->timecreated;
+            $submission->status = ASSIGN_SUBMISSION_STATUS_NEW;
+            if ($attemptnumber >= 0) {
+                $submission->attemptnumber = $attemptnumber;
+            } else {
+                $submission->attemptnumber = 0;
+            }
+            // Work out if this is the latest submission.
+            $submission->latest = 0;
+            $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid, 'groupid'=>0);
+            if ($attemptnumber == -1) {
+                // This is a new submission so it must be the latest.
+                $submission->latest = 1;
+            } else {
+                // We need to work this out.
+                $result = $DB->get_records('proassign_submission', $params, 'attemptnumber DESC', 'attemptnumber', 0, 1);
+                $latestsubmission = null;
+                if ($result) {
+                    $latestsubmission = reset($result);
+                }
+                if (empty($latestsubmission) || ($attemptnumber > $latestsubmission->attemptnumber)) {
+                    $submission->latest = 1;
+                }
+            }
+            if ($submission->latest) {
+                // This is the case when we need to set latest to 0 for all the other attempts.
+                $DB->set_field('proassign_submission', 'latest', 0, $params);
+            }
+            $sid = $DB->insert_record('proassign_submission', $submission);
+            return $DB->get_record('proassign_submission', array('id' => $sid));
+        }
+        return false;
+    }
+	
+	
+	public function view_student_summary($user, $showlinks) {
+        global $CFG, $DB, $PAGE;
+
+        $instance = $this->get_instance();
+        $grade = $this->get_user_grade($user->id, false);
+        $flags = $this->get_user_flags($user->id, false);
+        $submission = $this->get_user_submission($user->id, false);
+        $o = '';
+
+        $teamsubmission = null;
+        $submissiongroup = null;
+        $notsubmitted = array();
+        if ($instance->teamsubmission) {
+            $teamsubmission = $this->get_group_submission($user->id, 0, false);
+            $submissiongroup = $this->get_submission_group($user->id);
+            $groupid = 0;
+            if ($submissiongroup) {
+                $groupid = $submissiongroup->id;
+            }
+            $notsubmitted = $this->get_submission_group_members_who_have_not_submitted($groupid, false);
+        }
+
+        if ($this->can_view_submission($user->id)) {
+            $showedit = $showlinks &&
+                        ($this->is_any_submission_plugin_enabled()) &&
+                        $this->can_edit_submission($user->id);
+
+            $gradelocked = ($flags && $flags->locked) || $this->grading_disabled($user->id, false);
+
+            // Grading criteria preview.
+            $gradingmanager = get_grading_manager($this->context, 'mod_proassign', 'submissions');
+            $gradingcontrollerpreview = '';
+            if ($gradingmethod = $gradingmanager->get_active_method()) {
+                $controller = $gradingmanager->get_controller($gradingmethod);
+                if ($controller->is_form_defined()) {
+                    $gradingcontrollerpreview = $controller->render_preview($PAGE);
+                }
+            }
+
+            $showsubmit = ($showlinks && $this->submissions_open($user->id));
+            $showsubmit = ($showsubmit && $this->show_submit_button($submission, $teamsubmission, $user->id));
+
+            $extensionduedate = null;
+            if ($flags) {
+                $extensionduedate = $flags->extensionduedate;
+            }
+            $viewfullnames = has_capability('moodle/site:viewfullnames', $this->get_course_context());
+
+            $gradingstatus = $this->get_grading_status($user->id);
+            $usergroups = $this->get_all_groups($user->id);
+            $submissionstatus = new assign_submission_status($instance->allowsubmissionsfromdate,
+                                                              $instance->alwaysshowdescription,
+                                                              $submission,
+                                                              $instance->teamsubmission,
+                                                              $teamsubmission,
+                                                              $submissiongroup,
+                                                              $notsubmitted,
+                                                              $this->is_any_submission_plugin_enabled(),
+                                                              $gradelocked,
+                                                              $this->is_graded($user->id),
+                                                              $instance->duedate,
+                                                              $instance->cutoffdate,
+                                                              $this->get_submission_plugins(),
+                                                              $this->get_return_action(),
+                                                              $this->get_return_params(),
+                                                              $this->get_course_module()->id,
+                                                              $this->get_course()->id,
+                                                              assign_submission_status::STUDENT_VIEW,
+                                                              $showedit,
+                                                              $showsubmit,
+                                                              $viewfullnames,
+                                                              $extensionduedate,
+                                                              $this->get_context(),
+                                                              $this->is_blind_marking(),
+                                                              $gradingcontrollerpreview,
+                                                              $instance->attemptreopenmethod,
+                                                              $instance->maxattempts,
+                                                              $gradingstatus,
+                                                              $instance->preventsubmissionnotingroup,
+                                                              $usergroups);
+            if (has_capability('mod/proassign:submit', $this->get_context(), $user)) {
+                $o .= $this->get_renderer()->render($submissionstatus);
+            }
+
+            require_once($CFG->libdir.'/gradelib.php');
+            require_once($CFG->dirroot.'/grade/grading/lib.php');
+
+            $gradinginfo = grade_get_grades($this->get_course()->id,
+                                        'mod',
+                                        'proassign',
+                                        $instance->id,
+                                        $user->id);
+
+            $gradingitem = null;
+            $gradebookgrade = null;
+            if (isset($gradinginfo->items[0])) {
+                $gradingitem = $gradinginfo->items[0];
+                $gradebookgrade = $gradingitem->grades[$user->id];
+            }
+
+            // Check to see if all feedback plugins are empty.
+            $emptyplugins = true;
+            if ($grade) {
+                foreach ($this->get_feedback_plugins() as $plugin) {
+                    if ($plugin->is_visible() && $plugin->is_enabled()) {
+                        if (!$plugin->is_empty($grade)) {
+                            $emptyplugins = false;
+                        }
+                    }
+                }
+            }
+
+            if ($this->get_instance()->markingworkflow && $gradingstatus != ASSIGN_MARKING_WORKFLOW_STATE_RELEASED) {
+                $emptyplugins = true; // Don't show feedback plugins until released either.
+            }
+
+            $cangrade = has_capability('mod/proassign:grade', $this->get_context());
+            // If there is a visible grade, show the summary.
+            if ((!is_null($gradebookgrade->grade) || !$emptyplugins)
+                    && ($cangrade || !$gradebookgrade->hidden)) {
+
+                $gradefordisplay = null;
+                $gradeddate = null;
+                $grader = null;
+                $gradingmanager = get_grading_manager($this->get_context(), 'mod_proassign', 'submissions');
+
+                // Only show the grade if it is not hidden in gradebook.
+                if (!is_null($gradebookgrade->grade) && ($cangrade || !$gradebookgrade->hidden)) {
+                    if ($controller = $gradingmanager->get_active_controller()) {
+                        $menu = make_grades_menu($this->get_instance()->grade);
+                        $controller->set_grade_range($menu, $this->get_instance()->grade > 0);
+                        $gradefordisplay = $controller->render_grade($PAGE,
+                                                                     $grade->id,
+                                                                     $gradingitem,
+                                                                     $gradebookgrade->str_long_grade,
+                                                                     $cangrade);
+                    } else {
+                        $gradefordisplay = $this->display_grade($gradebookgrade->grade, false);
+                    }
+                    $gradeddate = $gradebookgrade->dategraded;
+                    if (isset($grade->grader)) {
+                        $grader = $DB->get_record('user', array('id'=>$grade->grader));
+                    }
+                }
+
+                $feedbackstatus = new assign_feedback_status($gradefordisplay,
+                                                      $gradeddate,
+                                                      $grader,
+                                                      $this->get_feedback_plugins(),
+                                                      $grade,
+                                                      $this->get_course_module()->id,
+                                                      $this->get_return_action(),
+                                                      $this->get_return_params());
+
+                $o .= $this->get_renderer()->render($feedbackstatus);
+            }
+
+            $allsubmissions = $this->get_all_submissions($user->id);
+
+            if (count($allsubmissions) > 1) {
+                $allgrades = $this->get_all_grades($user->id);
+                $history = new assign_attempt_history($allsubmissions,
+                                                      $allgrades,
+                                                      $this->get_submission_plugins(),
+                                                      $this->get_feedback_plugins(),
+                                                      $this->get_course_module()->id,
+                                                      $this->get_return_action(),
+                                                      $this->get_return_params(),
+                                                      false,
+                                                      0,
+                                                      0);
+
+                $o .= $this->get_renderer()->render($history);
+            }
+
+        }
+        return $o;
+    }
+
+	
+	public function get_user_flags($userid, $create) {
+        global $DB, $USER;
+
+        // If the userid is not null then use userid.
+        if (!$userid) {
+            $userid = $USER->id;
+        }
+
+        $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid);
+
+        $flags = $DB->get_record('proassign_user_flags', $params);
+
+        if ($flags) {
+            return $flags;
+        }
+        if ($create) {
+            $flags = new stdClass();
+            $flags->assignment = $this->get_instance()->id;
+            $flags->userid = $userid;
+            $flags->locked = 0;
+            $flags->extensionduedate = 0;
+            $flags->workflowstate = '';
+            $flags->allocatedmarker = 0;
+
+            // The mailed flag can be one of 3 values: 0 is unsent, 1 is sent and 2 is do not send yet.
+            // This is because students only want to be notified about certain types of update (grades and feedback).
+            $flags->mailed = 2;
+
+            $fid = $DB->insert_record('proassign_user_flags', $flags);
+            $flags->id = $fid;
+            return $flags;
+        }
+        return false;
+    }
+	
+
 	
 	public function get_course_module() {
         if ($this->coursemodule) {
@@ -491,9 +824,26 @@ class proassign{
         global $PAGE;
         if ($this->output) {
             return $this->output;
-        }
-        $this->output = $PAGE->get_renderer('mod_assign');
+        }		
+        $this->output = $PAGE->get_renderer('mod_proassign');
         return $this->output;
+    }
+	
+	public function show_intro() {
+        if ($this->get_instance()->alwaysshowdescription ||
+                time() > $this->get_instance()->allowsubmissionsfromdate) {
+            return true;
+        }
+        return false;
+    }
+	
+	public function can_view_grades() {
+        // Permissions check.
+        if (!has_any_capability(array('mod/proassign:viewgrades', 'mod/proassign:grade'), $this->context)) {
+            return false;
+        }
+
+        return true;
     }
 	
 }

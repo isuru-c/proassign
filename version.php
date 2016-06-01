@@ -28,7 +28,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_proassign';
-$plugin->version = 2016052701;
+$plugin->version = 2016060100;
 $plugin->release = 'v1.0';
 $plugin->requires = 2014051200;
 $plugin->maturity = MATURITY_ALPHA;
