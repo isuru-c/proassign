@@ -477,7 +477,7 @@ class proassign{
 
         // Only return the row with the highest attemptnumber.
         $submission = null;
-        $submissions = $DB->get_records('proassign_submission', $params, 'attemptnumber DESC', '*', 0, 1);print_r("sdsd");
+        $submissions = $DB->get_records('proassign_submission', $params, 'attemptnumber DESC', '*', 0, 1);
         if ($submissions) {
             $submission = reset($submissions);
         }

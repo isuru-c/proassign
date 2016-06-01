@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Capability definitions for the proassign module
+ * Capability definitions for the proproassign module
  *
  * The capabilities are loaded into the database table when the module is
  * installed or updated. Whenever the capability definitions are updated,
@@ -39,7 +39,7 @@
  *
  * The variable name for the capability definitions array is $capabilities
  *
- * @package    mod_proassign
+ * @package    mod_proproassign
  * @copyright  2015 Your Name
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -48,97 +48,158 @@ defined('MOODLE_INTERNAL') || die();
 
 // Modify capabilities as needed and remove this comment.
 $capabilities = array(
-            'mod/proassign:view' => array ( // Allows to view complete proassign description.
-                'riskbitmask' => 0,
-                'captype' => 'read',
-                'contextlevel' => CONTEXT_MODULE,
-                'archetypes' => array (
-                        'guest' => CAP_PREVENT,
-                        'student' => CAP_ALLOW,
-                        'teacher' => CAP_ALLOW,
-                        'editingteacher' => CAP_ALLOW,
-                        'coursecreator' => CAP_ALLOW,
-                        'manager' => CAP_ALLOW
-                )
-        ),
+      'mod/proassign:view' => array(
 
-        'mod/proassign:submit' => array ( // Allows to submit a proassign assingment.
-                'riskbitmask' => 0,
-                'captype' => 'write',
-                'contextlevel' => CONTEXT_MODULE,
-                'archetypes' => array (
-                        'guest' => CAP_PROHIBIT,
-                        'student' => CAP_ALLOW,
-                        'teacher' => CAP_PREVENT,
-                        'editingteacher' => CAP_ALLOW,
-                        'coursecreator' => CAP_ALLOW,
-                        'manager' => CAP_ALLOW
-                )
-        ),
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'guest' => CAP_ALLOW,
+            'student' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
+        )
+    ),
 
-        'mod/proassign:grade' => array ( // Allows to grade a proassign submission.
-                'riskbitmask' => RISK_PERSONAL,
-                'captype' => 'write',
-                'contextlevel' => CONTEXT_MODULE,
-                'archetypes' => array (
-                        'guest' => CAP_PROHIBIT,
-                        'student' => CAP_PREVENT,
-                        'teacher' => CAP_ALLOW,
-                        'editingteacher' => CAP_ALLOW,
-                        'coursecreator' => CAP_ALLOW,
-                        'manager' => CAP_ALLOW
-                )
+    'mod/proassign:submit' => array(
+
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'student' => CAP_ALLOW
+        )
+    ),
+
+    'mod/proassign:grade' => array(
+        'riskbitmask' => RISK_XSS,
+
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
+        )
+    ),
+
+    'mod/proassign:exportownsubmission' => array(
+
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+            'student' => CAP_ALLOW,
+        )
+    ),
+
+    'mod/proassign:addinstance' => array(
+        'riskbitmask' => RISK_XSS,
+
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => array(
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
         ),
-        'mod/proassign:similarity' => array ( // Allows to show submissions similarity.
-                'riskbitmask' => RISK_PERSONAL,
-                'captype' => 'read',
-                'contextlevel' => CONTEXT_MODULE,
-                'archetypes' => array (
-                        'guest' => CAP_PROHIBIT,
-                        'student' => CAP_PREVENT,
-                        'teacher' => CAP_ALLOW,
-                        'editingteacher' => CAP_ALLOW,
-                        'coursecreator' => CAP_ALLOW,
-                        'manager' => CAP_ALLOW
-                )
+        'clonepermissionsfrom' => 'moodle/course:manageactivities'
+    ),
+
+    'mod/proassign:editothersubmission' => array(
+        'riskbitmask' => RISK_MANAGETRUST|RISK_DATALOSS|RISK_PERSONAL,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE
+    ),
+
+    'mod/proassign:grantextension' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
         ),
-        'mod/proassign:addinstance' => array ( // Allows to add new proassign instance.
-                'riskbitmask' => RISK_SPAM | RISK_XSS,
-                'captype' => 'write',
-                'contextlevel' => CONTEXT_MODULE,
-                'archetypes' => array (
-                        'guest' => CAP_PROHIBIT,
-                        'student' => CAP_PROHIBIT,
-                        'teacher' => CAP_PREVENT,
-                        'editingteacher' => CAP_ALLOW,
-                        'coursecreator' => CAP_ALLOW,
-                        'manager' => CAP_ALLOW
-                )
+        'clonepermissionsfrom' => 'gradereport/grader:view'
+    ),
+
+    'mod/proassign:revealidentities' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
+        )
+    ),
+
+
+    'mod/proassign:reviewgrades' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
         ),
-        'mod/proassign:manage' => array ( // Allows to manage a proassign instance.
-                'riskbitmask' => RISK_SPAM | RISK_XSS | RISK_PERSONAL,
-                'captype' => 'write',
-                'contextlevel' => CONTEXT_MODULE,
-                'archetypes' => array (
-                        'guest' => CAP_PROHIBIT,
-                        'student' => CAP_PROHIBIT,
-                        'teacher' => CAP_PREVENT,
-                        'editingteacher' => CAP_ALLOW,
-                        'coursecreator' => CAP_ALLOW,
-                        'manager' => CAP_ALLOW
-                )
+        'clonepermissionsfrom' => 'moodle/grade:manage'
+    ),
+
+    'mod/proassign:releasegrades' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
         ),
-        'mod/proassign:setjails' => array ( // Allows to set the jails for a proassign instance.
-                'riskbitmask' => RISK_PERSONAL,
-                'captype' => 'write',
-                'contextlevel' => CONTEXT_MODULE,
-                'archetypes' => array (
-                        'guest' => CAP_PROHIBIT,
-                        'student' => CAP_PROHIBIT,
-                        'teacher' => CAP_PROHIBIT,
-                        'editingteacher' => CAP_ALLOW,
-                        'coursecreator' => CAP_ALLOW,
-                        'manager' => CAP_ALLOW
-                )
+        'clonepermissionsfrom' => 'moodle/grade:manage'
+    ),
+
+    'mod/proassign:managegrades' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
         ),
+        'clonepermissionsfrom' => 'moodle/grade:manage'
+    ),
+
+    'mod/proassign:manageallocations' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
+        ),
+        'clonepermissionsfrom' => 'moodle/grade:manage'
+    ),
+
+    'mod/proassign:viewgrades' => array(
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW
+        )
+    ),
+
+    'mod/proassign:viewblinddetails' => array(
+        'riskbitmask' => RISK_PERSONAL,
+
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'manager' => CAP_ALLOW
+        )
+    ),
+
+    'mod/proassign:receivegradernotifications' => array(
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
+        )
+    ),
 );

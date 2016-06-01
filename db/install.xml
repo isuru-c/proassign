@@ -23,7 +23,7 @@
       </INDEXES>
     </TABLE>
     
-	<TABLE NAME="proassign_submission" >
+	<TABLE NAME="proassign_submission" COMMENT="">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true"/>
       </FIELDS>
@@ -32,7 +32,7 @@
       </KEYS>
     </TABLE>
     
-	<TABLE NAME="proassign_grades" >
+	<TABLE NAME="proassign_grades" COMMENT="">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true"/>
       </FIELDS>
