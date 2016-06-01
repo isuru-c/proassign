@@ -173,15 +173,6 @@ function xmldb_proassign_upgrade($oldversion) {
 	
 	if($oldversion < 2016060100){
 				
-		$table = new xmldb_table('proassign_submission');
-		$dbman->add_table($table);	
-		
-		
-		$table = new xmldb_table('proassign_submission');
-		$field = new xmldb_field('id', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', null);
-		if (!$dbman->field_exists($table, $field)) {
-            $dbman->add_field($table, $field);
-        }
 		
 		$table = new xmldb_table('proassign_submission');
 		$field = new xmldb_field('assignment', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'id');
@@ -226,6 +217,54 @@ function xmldb_proassign_upgrade($oldversion) {
         }
 		
 		upgrade_mod_savepoint(true, 2016060100, 'proassign');
+	}
+	
+	if($oldversion < 2016060122){
+		
+		$table = new xmldb_table('proassign_grades');
+		$field = new xmldb_field('assignment', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'id');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_grades');
+		$field = new xmldb_field('userid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'assignment');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_grades');
+		$field = new xmldb_field('timecreated', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'userid');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_grades');
+		$field = new xmldb_field('timemodified', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'timecreated');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		
+		$table = new xmldb_table('proassign_grades');
+		$field = new xmldb_field('grader', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'timemodified');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_grades');
+		$field = new xmldb_field('grade', XMLDB_TYPE_DECIMAL, '(10,5)', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'grader');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$table = new xmldb_table('proassign_grades');
+		$field = new xmldb_field('attemptnumber', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'grade');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+				
+		upgrade_mod_savepoint(true, 2016060122, 'proassign');
 	}
 		
     return true;

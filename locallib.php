@@ -371,7 +371,7 @@ class proassign{
             }
         }
 		
-		
+		//print_r("Here");
         $grade = $this->get_user_grade($USER->id, false);
 		print_r("Here");
         $submission = $this->get_user_submission($USER->id, false);
@@ -476,8 +476,8 @@ class proassign{
         }
 
         // Only return the row with the highest attemptnumber.
-        $submission = null;print("dssdf");
-        $submissions = $DB->get_records('proassign_submission', $params, 'attemptnumber DESC', '*', 0, 1);
+        $submission = null;
+        $submissions = $DB->get_records('proassign_submission', $params, 'attemptnumber DESC', '*', 0, 1);print_r("sdsd");
         if ($submissions) {
             $submission = reset($submissions);
         }
@@ -846,4 +846,147 @@ class proassign{
         return true;
     }
 	
+	public function count_participants($currentgroup) {
+        return count($this->list_participants($currentgroup, true));
+    }
+	
+	public function list_participants($currentgroup, $idsonly) {
+
+        if (empty($currentgroup)) {
+            $currentgroup = 0;
+        }
+
+        $key = $this->context->id . '-' . $currentgroup . '-' . $this->show_only_active_users();
+        if (!isset($this->participants[$key])) {
+            $users = get_enrolled_users($this->context, 'mod/proassign:submit', $currentgroup, 'u.*', null, null, null,
+                    $this->show_only_active_users());
+
+            $cm = $this->get_course_module();
+            $info = new \core_availability\info_module($cm);
+            $users = $info->filter_user_list($users);
+
+            $this->participants[$key] = $users;
+        }
+
+        if ($idsonly) {
+            $idslist = array();
+            foreach ($this->participants[$key] as $id => $user) {
+                $idslist[$id] = new stdClass();
+                $idslist[$id]->id = $id;
+            }
+            return $idslist;
+        }
+        return $this->participants[$key];
+    }
+	
+	public function show_only_active_users() {
+        global $CFG;
+
+        if (is_null($this->showonlyactiveenrol)) {
+            $defaultgradeshowactiveenrol = !empty($CFG->grade_report_showonlyactiveenrol);
+            $this->showonlyactiveenrol = get_user_preferences('grade_report_showonlyactiveenrol', $defaultgradeshowactiveenrol);
+
+            if (!is_null($this->context)) {
+                $this->showonlyactiveenrol = $this->showonlyactiveenrol ||
+                            !has_capability('moodle/course:viewsuspendedusers', $this->context);
+            }
+        }
+        return $this->showonlyactiveenrol;
+    }
+	
+	public function count_submissions_with_status($status) {
+        global $DB;
+
+        $currentgroup = groups_get_activity_group($this->get_course_module(), true);
+        list($esql, $params) = get_enrolled_sql($this->get_context(), 'mod/proassign:submit', $currentgroup, true);
+
+        $params['assignid'] = $this->get_instance()->id;
+        $params['assignid2'] = $this->get_instance()->id;
+        $params['submissionstatus'] = $status;
+
+        if ($this->get_instance()->teamsubmission) {
+
+            $groupsstr = '';
+            if ($currentgroup != 0) {
+                // If there is an active group we should only display the current group users groups.
+                $participants = $this->list_participants($currentgroup, true);
+                $groups = groups_get_all_groups($this->get_course()->id,
+                                                array_keys($participants),
+                                                $this->get_instance()->teamsubmissiongroupingid,
+                                                'DISTINCT g.id, g.name');
+                list($groupssql, $groupsparams) = $DB->get_in_or_equal(array_keys($groups), SQL_PARAMS_NAMED);
+                $groupsstr = 's.groupid ' . $groupssql . ' AND';
+                $params = $params + $groupsparams;
+            }
+            $sql = 'SELECT COUNT(s.groupid)
+                        FROM {proassign_submission} s
+                        WHERE
+                            s.latest = 1 AND
+                            s.assignment = :assignid AND
+                            s.timemodified IS NOT NULL AND
+                            s.userid = :groupuserid AND '
+                            . $groupsstr . '
+                            s.status = :submissionstatus';
+            $params['groupuserid'] = 0;
+        } else {
+            $sql = 'SELECT COUNT(s.userid)
+                        FROM {proassign_submission} s
+                        JOIN(' . $esql . ') e ON e.id = s.userid
+                        WHERE
+                            s.latest = 1 AND
+                            s.assignment = :assignid AND
+                            s.timemodified IS NOT NULL AND
+                            s.status = :submissionstatus';
+
+        }
+
+        return $DB->count_records_sql($sql, $params);
+    }
+	
+	public function is_any_submission_plugin_enabled() {
+        if (!isset($this->cache['any_submission_plugin_enabled'])) {
+            $this->cache['any_submission_plugin_enabled'] = false;
+            foreach ($this->submissionplugins as $plugin) {
+                if ($plugin->is_enabled() && $plugin->is_visible() && $plugin->allow_submissions()) {
+                    $this->cache['any_submission_plugin_enabled'] = true;
+                    break;
+                }
+            }
+        }
+
+        return $this->cache['any_submission_plugin_enabled'];
+
+    }
+	
+	
+	public function count_submissions_need_grading() {
+        global $DB;
+
+        if ($this->get_instance()->teamsubmission) {
+            // This does not make sense for group assignment because the submission is shared.
+            return 0;
+        }
+
+        $currentgroup = groups_get_activity_group($this->get_course_module(), true);
+        list($esql, $params) = get_enrolled_sql($this->get_context(), 'mod/proassign:submit', $currentgroup, true);
+
+        $params['assignid'] = $this->get_instance()->id;
+        $params['submitted'] = ASSIGN_SUBMISSION_STATUS_SUBMITTED;
+
+        $sql = 'SELECT COUNT(s.userid)
+                   FROM {proassign_submission} s
+                   LEFT JOIN {assign_grades} g ON
+                        s.assignment = g.assignment AND
+                        s.userid = g.userid AND
+                        g.attemptnumber = s.attemptnumber
+                   JOIN(' . $esql . ') e ON e.id = s.userid
+                   WHERE
+                        s.latest = 1 AND
+                        s.assignment = :assignid AND
+                        s.timemodified IS NOT NULL AND
+                        s.status = :submitted AND
+                        (s.timemodified >= g.timemodified OR g.timemodified IS NULL OR g.grade IS NULL)';
+
+        return $DB->count_records_sql($sql, $params);
+    }
 }
