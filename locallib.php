@@ -2,9 +2,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-
+require_once($CFG->libdir . '/accesslib.php');
+require_once($CFG->libdir . '/formslib.php');
+require_once($CFG->dirroot . '/grade/grading/lib.php');
 require_once($CFG->dirroot . '/mod/proassign/renderable.php');
 require_once($CFG->dirroot . '/mod/proassign/renderer.php');
+require_once($CFG->libdir.'/gradelib.php');
 
 class proassign{
 	
@@ -373,18 +376,27 @@ class proassign{
 		
 		//print_r("Here");
         $grade = $this->get_user_grade($USER->id, false);
-		print_r("Here");
+		//print_r("Here");
         $submission = $this->get_user_submission($USER->id, false);
 		
         if ($this->can_view_submission($USER->id)) {
             $out .= $this->view_student_summary($USER, true);
-        }
+        }print_r("Here");
 		
         $out .= $this->view_footer();
 
-        \mod_proassign\event\submission_status_viewed::create_from_proassign($this)->trigger();
+        //\mod_proassign\event\submission_status_viewed::create_from_proassign($this)->trigger();
 
-        return $o;
+        return $out;
+    }
+	
+	 protected function view_footer() {
+        // When viewing the footer during PHPUNIT tests a set_state error is thrown.
+        if (!PHPUNIT_TEST) {
+            return $this->get_renderer()->render_footer();
+        }
+
+        return '';
     }
 	
 	public function can_view_submission($userid) {
@@ -470,7 +482,7 @@ class proassign{
             $userid = $USER->id;
         }
         // If the userid is not null then use userid.
-        $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid, 'groupid'=>0);
+        $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid);
         if ($attemptnumber >= 0) {
             $params['attemptnumber'] = $attemptnumber;
         }
@@ -491,7 +503,7 @@ class proassign{
             $submission->userid       = $userid;
             $submission->timecreated = time();
             $submission->timemodified = $submission->timecreated;
-            $submission->status = ASSIGN_SUBMISSION_STATUS_NEW;
+            $submission->status = 'new';
             if ($attemptnumber >= 0) {
                 $submission->attemptnumber = $attemptnumber;
             } else {
@@ -499,7 +511,7 @@ class proassign{
             }
             // Work out if this is the latest submission.
             $submission->latest = 0;
-            $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid, 'groupid'=>0);
+            $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid);
             if ($attemptnumber == -1) {
                 // This is a new submission so it must be the latest.
                 $submission->latest = 1;
@@ -530,7 +542,7 @@ class proassign{
 
         $instance = $this->get_instance();
         $grade = $this->get_user_grade($user->id, false);
-        $flags = $this->get_user_flags($user->id, false);
+        //$flags = $this->get_user_flags($user->id, false);
         $submission = $this->get_user_submission($user->id, false);
         $o = '';
 
@@ -538,7 +550,7 @@ class proassign{
         $submissiongroup = null;
         $notsubmitted = array();
         if ($instance->teamsubmission) {
-            $teamsubmission = $this->get_group_submission($user->id, 0, false);
+            //$teamsubmission = $this->get_group_submission($user->id, 0, false);
             $submissiongroup = $this->get_submission_group($user->id);
             $groupid = 0;
             if ($submissiongroup) {
@@ -552,7 +564,8 @@ class proassign{
                         ($this->is_any_submission_plugin_enabled()) &&
                         $this->can_edit_submission($user->id);
 
-            $gradelocked = ($flags && $flags->locked) || $this->grading_disabled($user->id, false);
+            //$gradelocked = ($flags && $flags->locked) || $this->grading_disabled($user->id, false);
+			$gradelocked = $this->grading_disabled($user->id, false);
 
             // Grading criteria preview.
             $gradingmanager = get_grading_manager($this->context, 'mod_proassign', 'submissions');
@@ -568,14 +581,14 @@ class proassign{
             $showsubmit = ($showsubmit && $this->show_submit_button($submission, $teamsubmission, $user->id));
 
             $extensionduedate = null;
-            if ($flags) {
+            /*if ($flags) {
                 $extensionduedate = $flags->extensionduedate;
-            }
+            }*/
             $viewfullnames = has_capability('moodle/site:viewfullnames', $this->get_course_context());
 
             $gradingstatus = $this->get_grading_status($user->id);
-            $usergroups = $this->get_all_groups($user->id);
-            $submissionstatus = new assign_submission_status($instance->allowsubmissionsfromdate,
+            //$usergroups = $this->get_all_groups($user->id);
+            $submissionstatus = new proassign_submission_status($instance->allowsubmissionsfromdate,
                                                               $instance->alwaysshowdescription,
                                                               $submission,
                                                               $instance->teamsubmission,
@@ -592,7 +605,7 @@ class proassign{
                                                               $this->get_return_params(),
                                                               $this->get_course_module()->id,
                                                               $this->get_course()->id,
-                                                              assign_submission_status::STUDENT_VIEW,
+                                                              proassign_submission_status::STUDENT_VIEW,
                                                               $showedit,
                                                               $showsubmit,
                                                               $viewfullnames,
@@ -603,8 +616,8 @@ class proassign{
                                                               $instance->attemptreopenmethod,
                                                               $instance->maxattempts,
                                                               $gradingstatus,
-                                                              $instance->preventsubmissionnotingroup,
-                                                              $usergroups);
+                                                              $instance->preventsubmissionnotingroup,null);
+                                                              //$usergroups);
             if (has_capability('mod/proassign:submit', $this->get_context(), $user)) {
                 $o .= $this->get_renderer()->render($submissionstatus);
             }
@@ -702,6 +715,257 @@ class proassign{
 
         }
         return $o;
+    }
+	
+	public function get_submission_plugins() {
+        return $this->submissionplugins;
+    }
+	
+	public function get_return_action() {
+        global $PAGE;
+
+        $params = $PAGE->url->params();
+
+        if (!empty($params['action'])) {
+            return $params['action'];
+        }
+        return '';
+    }
+	
+	public function get_return_params() {
+        global $PAGE;
+
+        $params = $PAGE->url->params();
+        unset($params['id']);
+        unset($params['action']);
+        return $params;
+    }
+	
+	protected function is_graded($userid) {
+        $grade = $this->get_user_grade($userid, false);
+        if ($grade) {
+            return ($grade->grade !== null && $grade->grade >= 0);
+        }
+        return false;
+    }
+	
+	public function is_blind_marking() {
+        return $this->get_instance()->blindmarking && !$this->get_instance()->revealidentities;
+    }
+	
+	protected function get_all_submissions($userid) {
+        global $DB, $USER;
+
+        // If the userid is not null then use userid.
+        if (!$userid) {
+            $userid = $USER->id;
+        }
+
+        $params = array();
+
+        if ($this->get_instance()->teamsubmission) {
+            $groupid = 0;
+            $group = $this->get_submission_group($userid);
+            if ($group) {
+                $groupid = $group->id;
+            }
+
+            // Params to get the group submissions.
+            $params = array('assignment'=>$this->get_instance()->id, 'groupid'=>$groupid, 'userid'=>0);
+        } else {
+            // Params to get the user submissions.
+            $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid);
+        }
+
+        // Return the submissions ordered by attempt.
+        $submissions = $DB->get_records('proassign_submission', $params, 'attemptnumber ASC');
+
+        return $submissions;
+    }
+	
+	public function get_grading_status($userid) {
+        /*if ($this->get_instance()->markingworkflow) {
+            $flags = $this->get_user_flags($userid, false);
+            if (!empty($flags->workflowstate)) {
+                return $flags->workflowstate;
+            }
+            return ASSIGN_MARKING_WORKFLOW_STATE_NOTMARKED;
+        } else {*/
+            $attemptnumber = optional_param('attemptnumber', -1, PARAM_INT);
+            $grade = $this->get_user_grade($userid, false, $attemptnumber);
+
+            if (!empty($grade) && $grade->grade !== null && $grade->grade >= 0) {
+                return 'graded';
+            } else {
+                return 'notgraded';
+            }
+        //}
+    }
+	
+	public function submissions_open($userid = 0,
+                                     $skipenrolled = false,
+                                     $submission = false,
+                                     $flags = false,
+                                     $gradinginfo = false) {
+        global $USER;
+
+        if (!$userid) {
+            $userid = $USER->id;
+        }
+
+        $time = time();
+        $dateopen = true;
+        $finaldate = false;
+        if ($this->get_instance()->cutoffdate) {
+            $finaldate = $this->get_instance()->cutoffdate;
+        }
+
+        /*if ($flags === false) {
+            $flags = $this->get_user_flags($userid, false);
+        }
+        if ($flags && $flags->locked) {
+            return false;
+        }*/
+
+        // User extensions.
+        if ($finaldate) {
+            if ($flags && $flags->extensionduedate) {
+                // Extension can be before cut off date.
+                if ($flags->extensionduedate > $finaldate) {
+                    $finaldate = $flags->extensionduedate;
+                }
+            }
+        }
+
+        if ($finaldate) {
+            $dateopen = ($this->get_instance()->allowsubmissionsfromdate <= $time && $time <= $finaldate);
+        } else {
+            $dateopen = ($this->get_instance()->allowsubmissionsfromdate <= $time);
+        }
+
+        if (!$dateopen) {
+            return false;
+        }
+
+        // Now check if this user has already submitted etc.
+        if (!$skipenrolled && !is_enrolled($this->get_course_context(), $userid)) {
+            return false;
+        }
+        // Note you can pass null for submission and it will not be fetched.
+        if ($submission === false) {
+            if ($this->get_instance()->teamsubmission) {
+                $submission = $this->get_group_submission($userid, 0, false);
+            } else {
+                $submission = $this->get_user_submission($userid, false);
+            }
+        }
+        if ($submission) {
+
+            if ($this->get_instance()->submissiondrafts && $submission->status == ASSIGN_SUBMISSION_STATUS_SUBMITTED) {
+                // Drafts are tracked and the student has submitted the assignment.
+                return false;
+            }
+        }
+
+        // See if this user grade is locked in the gradebook.
+        if ($gradinginfo === false) {
+            $gradinginfo = grade_get_grades($this->get_course()->id,
+                                            'mod',
+                                            'assign',
+                                            $this->get_instance()->id,
+                                            array($userid));
+        }
+        if ($gradinginfo &&
+                isset($gradinginfo->items[0]->grades[$userid]) &&
+                $gradinginfo->items[0]->grades[$userid]->locked) {
+            return false;
+        }
+
+        return true;
+    }
+	
+	public function get_course_context() {
+        if (!$this->context && !$this->course) {
+            throw new coding_exception('Improper use of the assignment class. ' .
+                                       'Cannot load the course context.');
+        }
+        if ($this->context) {
+            return $this->context->get_course_context();
+        } else {
+            return context_course::instance($this->course->id);
+        }
+    }
+	
+	protected function show_submit_button($submission = null, $teamsubmission = null, $userid = null) {
+        if ($teamsubmission) {
+            if ($teamsubmission->status === 'submitted') {
+                // The assignment submission has been completed.
+                return false;
+            } else if ($this->submission_empty($teamsubmission)) {
+                // There is nothing to submit yet.
+                return false;
+            } else if ($submission && $submission->status === 'submitted') {
+                // The user has already clicked the submit button on the team submission.
+                return false;
+            } else if (
+                !empty($this->get_instance()->preventsubmissionnotingroup)
+                && $this->get_submission_group($userid) == false
+            ) {
+                return false;
+            }
+        } else if ($submission) {
+            if ($submission->status === 'submitted') {
+                // The assignment submission has been completed.
+                return false;
+            } else if ($this->submission_empty($submission)) {
+                // There is nothing to submit.
+                return false;
+            }
+        } else {
+            // We've not got a valid submission or team submission.
+            return false;
+        }
+        // Last check is that this instance allows drafts.
+        return $this->get_instance()->submissiondrafts;
+    }
+	
+	public function submission_empty($submission) {
+        $allempty = true;
+
+        foreach ($this->submissionplugins as $plugin) {
+            if ($plugin->is_enabled() && $plugin->is_visible()) {
+                if (!$allempty || !$plugin->is_empty($submission)) {
+                    $allempty = false;
+                }
+            }
+        }
+        return $allempty;
+    }
+	
+	public function grading_disabled($userid, $checkworkflow=true) {
+        global $CFG;
+        if ($checkworkflow && $this->get_instance()->markingworkflow) {
+            $grade = $this->get_user_grade($userid, false);
+            $validstates = $this->get_marking_workflow_states_for_current_user();
+            if (!empty($grade) && !empty($grade->workflowstate) && !array_key_exists($grade->workflowstate, $validstates)) {
+                return true;
+            }
+        }
+        $gradinginfo = grade_get_grades($this->get_course()->id,
+                                        'mod',
+                                        'proassign',
+                                        $this->get_instance()->id,
+                                        array($userid));
+        if (!$gradinginfo) {
+            return false;
+        }
+
+        if (!isset($gradinginfo->items[0]->grades[$userid])) {
+            return false;
+        }
+        $gradingdisabled = $gradinginfo->items[0]->grades[$userid]->locked ||
+                           $gradinginfo->items[0]->grades[$userid]->overridden;
+        return $gradingdisabled;
     }
 
 	
@@ -971,7 +1235,7 @@ class proassign{
         list($esql, $params) = get_enrolled_sql($this->get_context(), 'mod/proassign:submit', $currentgroup, true);
 
         $params['assignid'] = $this->get_instance()->id;
-        $params['submitted'] = ASSIGN_SUBMISSION_STATUS_SUBMITTED;
+        $params['submitted'] = 'submitted';
 
         $sql = 'SELECT COUNT(s.userid)
                    FROM {proassign_submission} s
