@@ -21,7 +21,7 @@
  * See https://docs.moodle.org/dev/version.php for more info.
  *
  * @package    mod_proassign
- * @copyright  2015 Your Name <your@email.address>
+ * @copyright  Isuru Chandima <your@email.address>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

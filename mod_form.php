@@ -21,7 +21,7 @@
  * visit: http://docs.moodle.org/en/Development:lib/formslib.php
  *
  * @package    mod_proassign
- * @copyright  2015 Your Name
+ * @copyright  Isuru Chandima
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -34,7 +34,7 @@ require_once($CFG->dirroot . '/mod/proassign/locallib.php');
  * Module instance settings form
  *
  * @package    mod_proassign
- * @copyright  2015 Your Name
+ * @copyright  Isuru Chandima
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class mod_proassign_mod_form extends moodleform_mod {
@@ -47,8 +47,9 @@ class mod_proassign_mod_form extends moodleform_mod {
 
         $mform = $this->_form;
 
+		// General header
+		
         $mform->addElement('header', 'general', get_string('general', 'form'));
-
         $mform->addElement('text', 'name', 'Assignment name', array('size' => '64'));
         if (!empty($CFG->formatstringstriptags)) {
             $mform->setType('name', PARAM_TEXT);
@@ -56,42 +57,11 @@ class mod_proassign_mod_form extends moodleform_mod {
             $mform->setType('name', PARAM_CLEANHTML);
         }
         $mform->addRule('name', null, 'required', null, 'client');
-        $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
-		
-		$this->standard_intro_elements('Description');
-		
+        $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');		
+		$this->standard_intro_elements('Description');		
 		$mform->addElement('filemanager', 'introattachments', 'Additional files', null, array('subdirs' => 0, 'maxbytes' => $COURSE->maxbytes) );
-        $mform->addHelpButton('introattachments', 'introattachments', 'proassign');
-
-        // Adding the standard "intro" and "introformat" fields.
-        /*if ($CFG->branch >= 29) {
-            $this->standard_intro_elements();
-        } else {
-            $this->add_intro_editor();
-        }*/
-
-        // Adding the rest of proassign settings, spreading all them into this fieldset
-        // ... or adding more fieldsets ('header' elements) if needed for better logic.
-        //$mform->addElement('static', 'label1', 'proassignsetting1', 'Your proassign fields go here. Replace me!');
-
-        //$mform->addElement('header', 'evaluation', 'Evaluation');
-        //$mform->addElement('advcheckbox', 'evaluatesubmission', 'Evaluation', 'Evaluate the submission using test cases', array('group' => 1), array(0, 1));
-		//$mform->addElement('static', 'label2', 'Note', 'You can add various test cases after creation of the assignment');
-		
-		$ctx = null;
-        if ($this->current && $this->current->coursemodule) {
-            $cm = get_coursemodule_from_instance('proassign', $this->current->id, 0, false, MUST_EXIST);
-            $ctx = context_module::instance($cm->id);
-        }
-        $assignment = new proassign($ctx, null, null);
-        if ($this->current && $this->current->course) {
-            if (!$ctx) {
-                $ctx = context_course::instance($this->current->course);
-            }
-            $course = $DB->get_record('course', array('id'=>$this->current->course), '*', MUST_EXIST);
-            $assignment->set_course($course);
-        }
-		
+			
+		// Submission period header
 		
 		$mform->addElement('header', 'submissionperiod', 'Submission period');
         $secondsday=24*60*60;

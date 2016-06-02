@@ -19,7 +19,7 @@
  *
  * @package   mod_proassign
  * @category  grade
- * @copyright 2015 Your Name
+ * @copyright Isuru Chandima
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

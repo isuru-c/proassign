@@ -4,11 +4,14 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/accesslib.php');
 require_once($CFG->libdir . '/formslib.php');
+require_once($CFG->dirroot . '/repository/lib.php');
+require_once($CFG->dirroot . '/mod/assign/mod_form.php');
+require_once($CFG->libdir . '/gradelib.php');
 require_once($CFG->dirroot . '/grade/grading/lib.php');
 require_once($CFG->dirroot . '/mod/proassign/renderable.php');
 require_once($CFG->dirroot . '/mod/proassign/renderer.php');
-require_once($CFG->libdir.'/gradelib.php');
-
+require_once($CFG->libdir . '/eventslib.php');
+require_once($CFG->libdir . '/portfolio/caller.php');
 class proassign{
 	
 	/** @var stdClass the assignment record that contains the global settings for this assign instance */
@@ -113,6 +116,7 @@ class proassign{
         $result = array();
 
         $names = core_component::get_plugin_list($subtype);
+		print_r($names);
 
         foreach ($names as $name => $path) {
             if (file_exists($path . '/locallib.php')) {
@@ -140,19 +144,13 @@ class proassign{
         $mform->addElement('header', 'submissiontypes', 'Submission types');
 
         $submissionpluginsenabled = array();
-        $group = $mform->addGroup(array(), 'submissionplugins', get_string('submissiontypes', 'assign'), array(' '), false);
+        $group = $mform->addGroup(array(), 'submissionplugins', 'Submission types', array(' '), false);
+		//print_r($this->submissionplugins);
         foreach ($this->submissionplugins as $plugin) {
             $this->add_plugin_settings($plugin, $mform, $submissionpluginsenabled);
         }
         $group->setElements($submissionpluginsenabled);
 
-        $mform->addElement('header', 'feedbacktypes', get_string('feedbacktypes', 'assign'));
-        $feedbackpluginsenabled = array();
-        $group = $mform->addGroup(array(), 'feedbackplugins', get_string('feedbacktypes', 'assign'), array(' '), false);
-        foreach ($this->feedbackplugins as $plugin) {
-            $this->add_plugin_settings($plugin, $mform, $feedbackpluginsenabled);
-        }
-        $group->setElements($feedbackpluginsenabled);
         $mform->setExpanded('submissiontypes');
     }	
 	
@@ -404,23 +402,7 @@ class proassign{
 
             $activitygroup = groups_get_activity_group($this->get_course_module());
 
-            if ($instance->teamsubmission) {
-                $defaultteammembers = $this->get_submission_group_members(0, true);
-                $warnofungroupedusers = (count($defaultteammembers) > 0 && $instance->preventsubmissionnotingroup);
-
-                $summary = new proassign_grading_summary($this->count_teams($activitygroup),
-                                                      $instance->submissiondrafts,
-                                                      $this->count_submissions_with_status($draft),
-                                                      $this->is_any_submission_plugin_enabled(),
-                                                      $this->count_submissions_with_status($submitted),
-                                                      $instance->cutoffdate,
-                                                      $instance->duedate,
-                                                      $this->get_course_module()->id,
-                                                      $this->count_submissions_need_grading(),
-                                                      $instance->teamsubmission,
-                                                      $warnofungroupedusers);
-                $out .= $this->get_renderer()->render($summary);
-            } else {
+            
                 // The active group has already been updated in groups_print_activity_menu().
                 $countparticipants = $this->count_participants($activitygroup);
                 $summary = new proassign_grading_summary($countparticipants,
@@ -432,10 +414,10 @@ class proassign{
                                                       $instance->duedate,
                                                       $this->get_course_module()->id,
                                                       $this->count_submissions_need_grading(),
-                                                      $instance->teamsubmission,
+                                                      null,
                                                       false);
                 $out .= $this->get_renderer()->render($summary);
-            }
+            
         }
 		
 		//print_r("Here");
@@ -613,15 +595,6 @@ class proassign{
         $teamsubmission = null;
         $submissiongroup = null;
         $notsubmitted = array();
-        if ($instance->teamsubmission) {
-            //$teamsubmission = $this->get_group_submission($user->id, 0, false);
-            $submissiongroup = $this->get_submission_group($user->id);
-            $groupid = 0;
-            if ($submissiongroup) {
-                $groupid = $submissiongroup->id;
-            }
-            $notsubmitted = $this->get_submission_group_members_who_have_not_submitted($groupid, false);
-        }
 
         if ($this->can_view_submission($user->id)) {
             $showedit = $showlinks &&
@@ -655,7 +628,7 @@ class proassign{
             $submissionstatus = new proassign_submission_status($instance->allowsubmissionsfromdate,
                                                               $instance->alwaysshowdescription,
                                                               $submission,
-                                                              $instance->teamsubmission,
+                                                              null,
                                                               $teamsubmission,
                                                               $submissiongroup,
                                                               $notsubmitted,
@@ -827,19 +800,10 @@ class proassign{
 
         $params = array();
 
-        if ($this->get_instance()->teamsubmission) {
-            $groupid = 0;
-            $group = $this->get_submission_group($userid);
-            if ($group) {
-                $groupid = $group->id;
-            }
-
-            // Params to get the group submissions.
-            $params = array('assignment'=>$this->get_instance()->id, 'groupid'=>$groupid, 'userid'=>0);
-        } else {
+		
             // Params to get the user submissions.
             $params = array('assignment'=>$this->get_instance()->id, 'userid'=>$userid);
-        }
+        
 
         // Return the submissions ordered by attempt.
         $submissions = $DB->get_records('proassign_submission', $params, 'attemptnumber ASC');
@@ -917,11 +881,9 @@ class proassign{
         }
         // Note you can pass null for submission and it will not be fetched.
         if ($submission === false) {
-            if ($this->get_instance()->teamsubmission) {
-                $submission = $this->get_group_submission($userid, 0, false);
-            } else {
+			
                 $submission = $this->get_user_submission($userid, false);
-            }
+            
         }
         if ($submission) {
 
@@ -1126,7 +1088,7 @@ class proassign{
         }
         if ($this->get_course_module()) {
             $params = array('id' => $this->get_course_module()->instance);
-            $this->instance = $DB->get_record('assign', $params, '*', MUST_EXIST);
+            $this->instance = $DB->get_record('proassign', $params, '*', MUST_EXIST);
         }
         if (!$this->instance) {
             throw new coding_exception('Improper use of the assignment class. ' .
@@ -1232,31 +1194,7 @@ class proassign{
         $params['assignid2'] = $this->get_instance()->id;
         $params['submissionstatus'] = $status;
 
-        if ($this->get_instance()->teamsubmission) {
-
-            $groupsstr = '';
-            if ($currentgroup != 0) {
-                // If there is an active group we should only display the current group users groups.
-                $participants = $this->list_participants($currentgroup, true);
-                $groups = groups_get_all_groups($this->get_course()->id,
-                                                array_keys($participants),
-                                                $this->get_instance()->teamsubmissiongroupingid,
-                                                'DISTINCT g.id, g.name');
-                list($groupssql, $groupsparams) = $DB->get_in_or_equal(array_keys($groups), SQL_PARAMS_NAMED);
-                $groupsstr = 's.groupid ' . $groupssql . ' AND';
-                $params = $params + $groupsparams;
-            }
-            $sql = 'SELECT COUNT(s.groupid)
-                        FROM {proassign_submission} s
-                        WHERE
-                            s.latest = 1 AND
-                            s.assignment = :assignid AND
-                            s.timemodified IS NOT NULL AND
-                            s.userid = :groupuserid AND '
-                            . $groupsstr . '
-                            s.status = :submissionstatus';
-            $params['groupuserid'] = 0;
-        } else {
+        
             $sql = 'SELECT COUNT(s.userid)
                         FROM {proassign_submission} s
                         JOIN(' . $esql . ') e ON e.id = s.userid
@@ -1266,7 +1204,7 @@ class proassign{
                             s.timemodified IS NOT NULL AND
                             s.status = :submissionstatus';
 
-        }
+        
 
         return $DB->count_records_sql($sql, $params);
     }
@@ -1289,11 +1227,6 @@ class proassign{
 	
 	public function count_submissions_need_grading() {
         global $DB;
-
-        if ($this->get_instance()->teamsubmission) {
-            // This does not make sense for group assignment because the submission is shared.
-            return 0;
-        }
 
         $currentgroup = groups_get_activity_group($this->get_course_module(), true);
         list($esql, $params) = get_enrolled_sql($this->get_context(), 'mod/proassign:submit', $currentgroup, true);
