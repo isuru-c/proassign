@@ -24,6 +24,10 @@ class proassign{
 
     /** @var stdClass the course this assign instance belongs to */
     private $course;
+	
+	public function set_course(stdClass $course) {
+        $this->course = $course;
+    }
 
     /** @var stdClass the admin config for all assign instances  */
     private $adminconfig;
@@ -131,6 +135,66 @@ class proassign{
         ksort($result);
         return $result;
     }
+	
+    public function add_all_plugin_settings(MoodleQuickForm $mform) {
+        $mform->addElement('header', 'submissiontypes', 'Submission types');
+
+        $submissionpluginsenabled = array();
+        $group = $mform->addGroup(array(), 'submissionplugins', get_string('submissiontypes', 'assign'), array(' '), false);
+        foreach ($this->submissionplugins as $plugin) {
+            $this->add_plugin_settings($plugin, $mform, $submissionpluginsenabled);
+        }
+        $group->setElements($submissionpluginsenabled);
+
+        $mform->addElement('header', 'feedbacktypes', get_string('feedbacktypes', 'assign'));
+        $feedbackpluginsenabled = array();
+        $group = $mform->addGroup(array(), 'feedbackplugins', get_string('feedbacktypes', 'assign'), array(' '), false);
+        foreach ($this->feedbackplugins as $plugin) {
+            $this->add_plugin_settings($plugin, $mform, $feedbackpluginsenabled);
+        }
+        $group->setElements($feedbackpluginsenabled);
+        $mform->setExpanded('submissiontypes');
+    }	
+	
+	protected function add_plugin_settings(proassign_plugin $plugin, MoodleQuickForm $mform, & $pluginsenabled) {
+        global $CFG;
+        if ($plugin->is_visible() && !$plugin->is_configurable() && $plugin->is_enabled()) {
+            $name = $plugin->get_subtype() . '_' . $plugin->get_type() . '_enabled';
+            $pluginsenabled[] = $mform->createElement('hidden', $name, 1);
+            $mform->setType($name, PARAM_BOOL);
+            $plugin->get_settings($mform);
+        } else if ($plugin->is_visible() && $plugin->is_configurable()) {
+            $name = $plugin->get_subtype() . '_' . $plugin->get_type() . '_enabled';
+            $label = $plugin->get_name();
+            $label .= ' ' . $this->get_renderer()->help_icon('enabled', $plugin->get_subtype() . '_' . $plugin->get_type());
+            $pluginsenabled[] = $mform->createElement('checkbox', $name, '', $label);
+
+            $default = get_config($plugin->get_subtype() . '_' . $plugin->get_type(), 'default');
+            if ($plugin->get_config('enabled') !== false) {
+                $default = $plugin->is_enabled();
+            }
+            $mform->setDefault($plugin->get_subtype() . '_' . $plugin->get_type() . '_enabled', $default);
+
+            $plugin->get_settings($mform);
+
+        }
+    }
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	public function view($action='') {
 		

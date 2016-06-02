@@ -28,6 +28,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/course/moodleform_mod.php');
+require_once($CFG->dirroot . '/mod/proassign/locallib.php');
 
 /**
  * Module instance settings form
@@ -42,14 +43,12 @@ class mod_proassign_mod_form extends moodleform_mod {
      * Defines forms elements
      */
     public function definition() {
-        global $CFG;
+        global $CFG, $DB, $COURSE, $PAGE;
 
         $mform = $this->_form;
 
-        // Adding the "general" fieldset, where all the common settings are showed.
         $mform->addElement('header', 'general', get_string('general', 'form'));
 
-        // Adding the standard "name" field.
         $mform->addElement('text', 'name', 'Assignment name', array('size' => '64'));
         if (!empty($CFG->formatstringstriptags)) {
             $mform->setType('name', PARAM_TEXT);
@@ -58,14 +57,18 @@ class mod_proassign_mod_form extends moodleform_mod {
         }
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
-        //$mform->addHelpButton('name', 'proassignname', 'proassign');
+		
+		$this->standard_intro_elements('Description');
+		
+		$mform->addElement('filemanager', 'introattachments', 'Additional files', null, array('subdirs' => 0, 'maxbytes' => $COURSE->maxbytes) );
+        $mform->addHelpButton('introattachments', 'introattachments', 'proassign');
 
         // Adding the standard "intro" and "introformat" fields.
-        if ($CFG->branch >= 29) {
+        /*if ($CFG->branch >= 29) {
             $this->standard_intro_elements();
         } else {
             $this->add_intro_editor();
-        }
+        }*/
 
         // Adding the rest of proassign settings, spreading all them into this fieldset
         // ... or adding more fieldsets ('header' elements) if needed for better logic.
@@ -74,6 +77,21 @@ class mod_proassign_mod_form extends moodleform_mod {
         //$mform->addElement('header', 'evaluation', 'Evaluation');
         //$mform->addElement('advcheckbox', 'evaluatesubmission', 'Evaluation', 'Evaluate the submission using test cases', array('group' => 1), array(0, 1));
 		//$mform->addElement('static', 'label2', 'Note', 'You can add various test cases after creation of the assignment');
+		
+		$ctx = null;
+        if ($this->current && $this->current->coursemodule) {
+            $cm = get_coursemodule_from_instance('proassign', $this->current->id, 0, false, MUST_EXIST);
+            $ctx = context_module::instance($cm->id);
+        }
+        $assignment = new proassign($ctx, null, null);
+        if ($this->current && $this->current->course) {
+            if (!$ctx) {
+                $ctx = context_course::instance($this->current->course);
+            }
+            $course = $DB->get_record('course', array('id'=>$this->current->course), '*', MUST_EXIST);
+            $assignment->set_course($course);
+        }
+		
 		
 		$mform->addElement('header', 'submissionperiod', 'Submission period');
         $secondsday=24*60*60;
