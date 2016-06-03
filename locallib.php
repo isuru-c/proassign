@@ -1,4 +1,4 @@
-12<?php
+<?php
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -12,191 +12,105 @@ require_once($CFG->dirroot . '/mod/proassign/renderable.php');
 require_once($CFG->dirroot . '/mod/proassign/renderer.php');
 require_once($CFG->libdir . '/eventslib.php');
 require_once($CFG->libdir . '/portfolio/caller.php');
+
 class proassign{
 	
-	/** @var stdClass the assignment record that contains the global settings for this assign instance */
+	
     private $instance;
-
-    /** @var stdClass the grade_item record for this assign instance's primary grade item. */
-    private $gradeitem;
-
-    /** @var context the context of the course module for this assign instance
-     *               (or just the course if we are creating a new one)
-     */
-    private $context;
-
-    /** @var stdClass the course this assign instance belongs to */
-    private $course;
-	
-	public function set_course(stdClass $course) {
-        $this->course = $course;
-    }
-
-    /** @var stdClass the admin config for all assign instances  */
-    private $adminconfig;
-
-    /** @var assign_renderer the custom renderer for this module */
-    private $output;
-
-    /** @var cm_info the course module for this assign instance */
+	private $gradeitem;
+	private $context;
+	private $course;
+	private $adminconfig;
+	private $output;
     private $coursemodule;
-
-    /** @var array cache for things like the coursemodule name or the scale menu -
-     *             only lives for a single request.
-     */
     private $cache;
-
-    /** @var array list of the installed submission plugins */
     private $submissionplugins;
-
-    /** @var array list of the installed feedback plugins */
     private $feedbackplugins;
-
-    /** @var string action to be used to return to this page
-     *              (without repeating any form submissions etc).
-     */
     private $returnaction = 'view';
-
-    /** @var array params to be used to return to this page */
     private $returnparams = array();
-
-    /** @var string modulename prevents excessive calls to get_string */
     private static $modulename = null;
-
-    /** @var string modulenameplural prevents excessive calls to get_string */
     private static $modulenameplural = null;
-
-    /** @var array of marking workflow states for the current user */
     private $markingworkflowstates = null;
-
-    /** @var bool whether to exclude users with inactive enrolment */
     private $showonlyactiveenrol = null;
-
-    /** @var string A key used to identify userlists created by this object. */
     private $useridlistid = null;
-
-    /** @var array cached list of participants for this assignment. The cache key will be group, showactive and the context id */
     private $participants = array();
-
-    /** @var array cached list of user groups when team submissions are enabled. The cache key will be the user. */
     private $usersubmissiongroups = array();
-
-    /** @var array cached list of user groups. The cache key will be the user. */
     private $usergroups = array();
-
-    /** @var array cached list of IDs of users who share group membership with the user. The cache key will be the user. */
     private $sharedgroupmembers = array();
-	
 	
 	public function __construct($coursemodulecontext, $coursemodule, $course) {
         global $SESSION;
 
         $this->context = $coursemodulecontext;
         $this->course = $course;
-
-        // Ensure that $this->coursemodule is a cm_info object (or null).
         $this->coursemodule = cm_info::create($coursemodule);
-
-        // Temporary cache only lives for a single request - used to reduce db lookups.
-        $this->cache = array();
-
-        $this->submissionplugins = $this->load_plugins('proassignsubmission');
-        $this->feedbackplugins = $this->load_plugins('proassignfeedback');
-		
-        // Extra entropy is required for uniqid() to work on cygwin.
-        $this->useridlistid = clean_param(uniqid('', true), PARAM_ALPHANUM);
-
         if (!isset($SESSION->mod_proassign_useridlist)) {
             $SESSION->mod_proassign_useridlist = [];
         }
     }
 	
-	protected function load_plugins($subtype) {
-        global $CFG;
-        $result = array();
+	public function set_course(stdClass $course) {
+        $this->course = $course;
+    }
 
-        $names = core_component::get_plugin_list($subtype);
-		print_r($names);
-
-        foreach ($names as $name => $path) {
-            if (file_exists($path . '/locallib.php')) {
-                require_once($path . '/locallib.php');
-
-                $shortsubtype = substr($subtype, strlen('assign'));
-                $pluginclass = 'assign_' . $shortsubtype . '_' . $name;
-
-                $plugin = new $pluginclass($this, $name);
-
-                if ($plugin instanceof assign_plugin) {
-                    $idx = $plugin->get_sort_order();
-                    while (array_key_exists($idx, $result)) {
-                        $idx +=1;
-                    }
-                    $result[$idx] = $plugin;
-                }
-            }
+	public function get_course_module() {
+        if ($this->coursemodule) {
+            return $this->coursemodule;
         }
-        ksort($result);
-        return $result;
+        if (!$this->context) {
+            return null;
+        }
+
+        if ($this->context->contextlevel == CONTEXT_MODULE) {
+            $modinfo = get_fast_modinfo($this->get_course());
+            $this->coursemodule = $modinfo->get_cm($this->context->instanceid);
+            return $this->coursemodule;
+        }
+        return null;
     }
 	
-    public function add_all_plugin_settings(MoodleQuickForm $mform) {
-        $mform->addElement('header', 'submissiontypes', 'Submission types');
-
-        $submissionpluginsenabled = array();
-        $group = $mform->addGroup(array(), 'submissionplugins', 'Submission types', array(' '), false);
-		//print_r($this->submissionplugins);
-        foreach ($this->submissionplugins as $plugin) {
-            $this->add_plugin_settings($plugin, $mform, $submissionpluginsenabled);
-        }
-        $group->setElements($submissionpluginsenabled);
-
-        $mform->setExpanded('submissiontypes');
-    }	
-	
-	protected function add_plugin_settings(proassign_plugin $plugin, MoodleQuickForm $mform, & $pluginsenabled) {
-        global $CFG;
-        if ($plugin->is_visible() && !$plugin->is_configurable() && $plugin->is_enabled()) {
-            $name = $plugin->get_subtype() . '_' . $plugin->get_type() . '_enabled';
-            $pluginsenabled[] = $mform->createElement('hidden', $name, 1);
-            $mform->setType($name, PARAM_BOOL);
-            $plugin->get_settings($mform);
-        } else if ($plugin->is_visible() && $plugin->is_configurable()) {
-            $name = $plugin->get_subtype() . '_' . $plugin->get_type() . '_enabled';
-            $label = $plugin->get_name();
-            $label .= ' ' . $this->get_renderer()->help_icon('enabled', $plugin->get_subtype() . '_' . $plugin->get_type());
-            $pluginsenabled[] = $mform->createElement('checkbox', $name, '', $label);
-
-            $default = get_config($plugin->get_subtype() . '_' . $plugin->get_type(), 'default');
-            if ($plugin->get_config('enabled') !== false) {
-                $default = $plugin->is_enabled();
-            }
-            $mform->setDefault($plugin->get_subtype() . '_' . $plugin->get_type() . '_enabled', $default);
-
-            $plugin->get_settings($mform);
-
-        }
+	public function get_context() {
+        return $this->context;
     }
 	
+	public function get_course() {
+        global $DB;
+
+        if ($this->course) {
+            return $this->course;
+        }
+
+        if (!$this->context) {
+            return null;
+        }
+        $params = array('id' => $this->get_course_context()->instanceid);
+        $this->course = $DB->get_record('course', $params, '*', MUST_EXIST);
+
+        return $this->course;
+    }
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	public function get_useridlist_key_id() {
+        return $this->useridlistid;
+    }
+
+	public function get_instance() {
+        global $DB;
+        if ($this->instance) {
+            return $this->instance;
+        }
+        if ($this->get_course_module()) {
+            $params = array('id' => $this->get_course_module()->instance);
+            $this->instance = $DB->get_record('proassign', $params, '*', MUST_EXIST);
+        }
+        if (!$this->instance) {
+            throw new coding_exception('Improper use of the assignment class. Cannot load the assignment record.');
+        }
+        return $this->instance;
+    }
 	
 	public function view($action='') {
 		
-		$outpot = '';
+		$out = '';
         $mform = null;
         $notices = array();
         $nextpageparams = array();
@@ -205,6 +119,7 @@ class proassign{
             $nextpageparams['id'] = $this->get_course_module()->id;
         }
 				
+		{
 		if ($action == 'savesubmission') {
             $action = 'editsubmission';
             if ($this->process_save_submission($mform, $notices)) {
@@ -312,6 +227,7 @@ class proassign{
             $action = 'redirect';
             $nextpageparams['action'] = 'grading';
         }
+		}
 		
 		$returnparams = array('rownum'=>optional_param('rownum', 0, PARAM_INT),
                               'useridlistid' => optional_param('useridlistid', $this->get_useridlist_key_id(), PARAM_ALPHANUM));
@@ -319,7 +235,7 @@ class proassign{
 
         // Now show the right view page.
         if ($action == 'redirect') {
-            $nextpageurl = new moodle_url('/mod/assign/view.php', $nextpageparams);
+            $nextpageurl = new moodle_url('/mod/proassign/view.php', $nextpageparams);
             redirect($nextpageurl);
             return;
         } else if ($action == 'savegradingresult') {
@@ -357,41 +273,31 @@ class proassign{
         } else if ($action == 'viewbatchmarkingallocation') {
             $outpot .= $this->view_batch_markingallocation($mform);
         } else if ($action == 'viewsubmitforgradingerror') {
-            $outpot .= $this->view_error_page(get_string('submitforgrading', 'assign'), $notices);
-        } else {
-            $outpot .= $this->view_submission_page();
+            $out .= $this->view_error_page(get_string('submitforgrading', 'assign'), $notices);
+        } else if($action == 'testcases'){
+			$out .= $this->view_test_cases();
+		} else {
+            $out .= $this->view_main_page();
         }
 
-        return $outpot;
+        return $out;		
 		
-		
-	}
+	}	
 	
-	
-	
-	protected function view_submission_page() {
+	protected function view_main_page() {
         global $CFG, $DB, $USER, $PAGE;
 
         $instance = $this->get_instance();
-
         $out = '';
-
         $postfix = '';
-		
-        /*if ($this->has_visible_attachments()) {
-            $postfix = $this->render_area_files('mod_proassign', ASSIGN_INTROATTACHMENT_FILEAREA, 0);
-        }*/
 		
         $out .= $this->get_renderer()->render(new proassign_header($instance, $this->get_context(), $this->show_intro(), $this->get_course_module()->id, '', '', $postfix));
 
-        // Display plugin specific headers.
-        /*$plugins = array_merge($this->get_submission_plugins(), $this->get_feedback_plugins());
-        foreach ($plugins as $plugin) {
-            if ($plugin->is_enabled() && $plugin->is_visible()) {
-                $o .= $this->get_renderer()->render(new assign_plugin_header($plugin));
-            }
-        }*/
-
+		if($this->can_manage_assignment()){
+			
+		}
+		
+		
         if ($this->can_view_grades()) {
             $draft = 'draft';
             $submitted = 'submitted';
@@ -405,7 +311,7 @@ class proassign{
             
                 // The active group has already been updated in groups_print_activity_menu().
                 $countparticipants = $this->count_participants($activitygroup);
-                $summary = new proassign_grading_summary($countparticipants,
+                /*$summary = new proassign_grading_summary($countparticipants,
                                                       $instance->submissiondrafts,
                                                       $this->count_submissions_with_status($draft),
                                                       $this->is_any_submission_plugin_enabled(),
@@ -416,33 +322,56 @@ class proassign{
                                                       $this->count_submissions_need_grading(),
                                                       null,
                                                       false);
-                $out .= $this->get_renderer()->render($summary);
+                $out .= $this->get_renderer()->render($summary);*/
             
         }
 		
-		//print_r("Here");
         $grade = $this->get_user_grade($USER->id, false);
-		//print_r("Here");
         $submission = $this->get_user_submission($USER->id, false);
 		
         if ($this->can_view_submission($USER->id)) {
-            $out .= $this->view_student_summary($USER, true);
-        }print_r("Here");
+            //$out .= $this->view_student_summary($USER, true);
+        }
 		
         $out .= $this->view_footer();
-
-        //\mod_proassign\event\submission_status_viewed::create_from_proassign($this)->trigger();
 
         return $out;
     }
 	
-	 protected function view_footer() {
-        // When viewing the footer during PHPUNIT tests a set_state error is thrown.
+	protected function view_footer() {
         if (!PHPUNIT_TEST) {
             return $this->get_renderer()->render_footer();
         }
-
         return '';
+    }
+	
+	protected function view_test_cases(){
+		global $CFG, $DB, $USER, $PAGE;
+		
+		$instance = $this->get_instance();
+		$out = '';
+		
+		$out .= $this->get_renderer()->render(new proassign_test_case($instance, $this->get_context(), $this->get_course_module()->id, $this->can_manage_assignment()));
+		
+		$out .= $this->view_footer();
+		
+		return $out;		
+	}
+	
+	public function can_manage_assignment() {
+        if (!has_any_capability(array('mod/proassign:manage'), $this->context)) {
+            return false;
+        }
+
+        return true;
+    }
+	
+	public function can_view_grades() {
+        if (!has_any_capability(array('mod/proassign:viewgrades', 'mod/proassign:grade'), $this->context)) {
+            return false;
+        }
+
+        return true;
     }
 	
 	public function can_view_submission($userid) {
@@ -518,8 +447,7 @@ class proassign{
             return $grade;
         }
         return false;
-    }
-	
+    }	
 	
 	public function get_user_submission($userid, $create, $attemptnumber=-1) {
         global $DB, $USER;
@@ -580,8 +508,7 @@ class proassign{
             return $DB->get_record('proassign_submission', array('id' => $sid));
         }
         return false;
-    }
-	
+    }	
 	
 	public function view_student_summary($user, $showlinks) {
         global $CFG, $DB, $PAGE;
@@ -830,11 +757,7 @@ class proassign{
         //}
     }
 	
-	public function submissions_open($userid = 0,
-                                     $skipenrolled = false,
-                                     $submission = false,
-                                     $flags = false,
-                                     $gradinginfo = false) {
+	public function submissions_open($userid = 0, $skipenrolled = false, $submission = false, $flags = false, $gradinginfo = false) {
         global $USER;
 
         if (!$userid) {
@@ -993,7 +916,6 @@ class proassign{
                            $gradinginfo->items[0]->grades[$userid]->overridden;
         return $gradingdisabled;
     }
-
 	
 	public function get_user_flags($userid, $create) {
         global $DB, $USER;
@@ -1028,50 +950,8 @@ class proassign{
             return $flags;
         }
         return false;
-    }
-	
-
-	
-	public function get_course_module() {
-        if ($this->coursemodule) {
-            return $this->coursemodule;
-        }
-        if (!$this->context) {
-            return null;
-        }
-
-        if ($this->context->contextlevel == CONTEXT_MODULE) {
-            $modinfo = get_fast_modinfo($this->get_course());
-            $this->coursemodule = $modinfo->get_cm($this->context->instanceid);
-            return $this->coursemodule;
-        }
-        return null;
-    }
-	
-	public function get_context() {
-        return $this->context;
-    }
-	
-	public function get_course() {
-        global $DB;
-
-        if ($this->course) {
-            return $this->course;
-        }
-
-        if (!$this->context) {
-            return null;
-        }
-        $params = array('id' => $this->get_course_context()->instanceid);
-        $this->course = $DB->get_record('course', $params, '*', MUST_EXIST);
-
-        return $this->course;
-    }
-	
-	public function get_useridlist_key_id() {
-        return $this->useridlistid;
-    }
-	
+    }	
+		
 	public function register_return_link($action, $params) {
         global $PAGE;
         $params['action'] = $action;
@@ -1079,22 +959,6 @@ class proassign{
 
         $currenturl->params($params);
         $PAGE->set_url($currenturl);
-    }
-	
-	public function get_instance() {
-        global $DB;
-        if ($this->instance) {
-            return $this->instance;
-        }
-        if ($this->get_course_module()) {
-            $params = array('id' => $this->get_course_module()->instance);
-            $this->instance = $DB->get_record('proassign', $params, '*', MUST_EXIST);
-        }
-        if (!$this->instance) {
-            throw new coding_exception('Improper use of the assignment class. ' .
-                                       'Cannot load the assignment record.');
-        }
-        return $this->instance;
     }
 	
 	protected function has_visible_attachments() {
@@ -1120,20 +984,12 @@ class proassign{
     }
 	
 	public function show_intro() {
+		return true;
         if ($this->get_instance()->alwaysshowdescription ||
                 time() > $this->get_instance()->allowsubmissionsfromdate) {
             return true;
         }
         return false;
-    }
-	
-	public function can_view_grades() {
-        // Permissions check.
-        if (!has_any_capability(array('mod/proassign:viewgrades', 'mod/proassign:grade'), $this->context)) {
-            return false;
-        }
-
-        return true;
     }
 	
 	public function count_participants($currentgroup) {
@@ -1222,8 +1078,7 @@ class proassign{
 
         return $this->cache['any_submission_plugin_enabled'];
 
-    }
-	
+    }	
 	
 	public function count_submissions_need_grading() {
         global $DB;

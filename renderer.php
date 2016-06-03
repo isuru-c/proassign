@@ -7,7 +7,7 @@ require_once($CFG->dirroot . '/mod/proassign/locallib.php');
 class mod_proassign_renderer extends plugin_renderer_base {
 
     public function render_proassign_header(proassign_header $header) {
-        $o = '';
+        $out = '';
 
         if ($header->subpage) {
             $this->page->navbar->add($header->subpage);
@@ -16,22 +16,49 @@ class mod_proassign_renderer extends plugin_renderer_base {
         $this->page->set_title('Programming Assignment');
         $this->page->set_heading($this->page->course->fullname);
 
-        $o .= $this->output->header();
+        $out .= $this->output->header();
         $heading = format_string($header->proassign->name, false, array('context' => $header->context));
-        $o .= $this->output->heading($heading);
+        $out .= $this->output->heading($heading);
         if ($header->preface) {
-            $o .= $header->preface;
+            $out .= $header->preface;
         }
 
         if ($header->showintro) {
-            $o .= $this->output->box_start('generalbox boxaligncenter', 'intro');
-            $o .= format_module_intro('proassign', $header->proassign, $header->coursemoduleid);
-            $o .= $header->postfix;
-            $o .= $this->output->box_end();
+            $out .= $this->output->box_start('generalbox boxaligncenter', 'intro');
+            $out .= format_module_intro('proassign', $header->proassign, $header->coursemoduleid);
+            $out .= $header->postfix;
+            $out .= $this->output->box_end();
         }
+		
+		$out .= $this->output->container_start('testcaselinks');
+        $urlparams = array('id' => $header->coursemoduleid, 'action'=>'testcases');
+        $url = new moodle_url('/mod/proassign/view.php', $urlparams);
+        $out .= $this->output->action_link($url, 'Test cases');
+        $out .= $this->output->container_end();
 
-        return $o;
+        return $out;
     }
+	
+	public function render_proassign_test_case(proassign_test_case $test_case){
+		$out = '';
+		
+		$this->page->set_title('Programming Assignment');
+        $this->page->set_heading($this->page->course->fullname);
+		
+		$out .= $this->output->header();
+        $heading = format_string($test_case->proassign->name, false, array('context' => $test_case->context));
+        $out .= $this->output->heading($heading);
+		
+		$out .= 'All the test cases of ' . $test_case->proassign->name . ' are listed here.</br>';
+				
+		$out .= $this->output->container_start('testcaseheader');
+        $urlparams = array('id' => $test_case->coursemoduleid, 'action'=>'');
+        $url = new moodle_url('/mod/proassign/view.php', $urlparams);
+        $out .= $this->output->action_link($url, 'Back to assignment');
+        $out .= $this->output->container_end();
+		
+		return $out;
+	}
 	
 	public function render_proassign_grading_summary(proassign_grading_summary $summary) {
         // Create a table for the data.

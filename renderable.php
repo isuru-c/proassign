@@ -3,6 +3,42 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+class proassign_header implements renderable {
+	
+    public $proassign = null;
+    public $context = null;
+    public $showintro = false;
+    public $coursemoduleid = 0;
+    public $subpage = '';
+    public $preface = '';
+    public $postfix = '';
+
+    public function __construct(stdClass $proassign, $context, $showintro, $coursemoduleid, $subpage='', $preface='', $postfix='') {
+        $this->proassign = $proassign;
+        $this->context = $context;
+        $this->showintro = $showintro;
+        $this->coursemoduleid = $coursemoduleid;
+        $this->subpage = $subpage;
+        $this->preface = $preface;
+        $this->postfix = $postfix;
+    }
+}
+
+class proassign_test_case implements renderable {
+	
+	public $proassign = null;
+    public $context = null;
+    public $coursemoduleid = 0;
+	public $editmode = false;
+	
+	public function __construct(stdClass $proassign, $context, $coursemoduleid, $editmode) {
+        $this->proassign = $proassign;
+        $this->context = $context;
+        $this->coursemoduleid = $coursemoduleid;
+		$this->editmode = $editmode;
+    }
+}
+
 
 class proassign_submit_for_grading_page implements renderable {
     /** @var array $notifications is a list of notification messages returned from the plugins */
@@ -389,32 +425,7 @@ class proassign_attempt_history implements renderable {
 
 
 
-class proassign_header implements renderable {
-    /** @var stdClass the proassign record  */
-    public $proassign = null;
-    /** @var mixed context|null the context record  */
-    public $context = null;
-    /** @var bool $showintro - show or hide the intro */
-    public $showintro = false;
-    /** @var int coursemoduleid - The course module id */
-    public $coursemoduleid = 0;
-    /** @var string $subpage optional subpage (extra level in the breadcrumbs) */
-    public $subpage = '';
-    /** @var string $preface optional preface (text to show before the heading) */
-    public $preface = '';
-    /** @var string $postfix optional postfix (text to show after the intro) */
-    public $postfix = '';
 
-    public function __construct(stdClass $proassign, $context, $showintro, $coursemoduleid, $subpage='', $preface='', $postfix='') {
-        $this->proassign = $proassign;
-        $this->context = $context;
-        $this->showintro = $showintro;
-        $this->coursemoduleid = $coursemoduleid;
-        $this->subpage = $subpage;
-        $this->preface = $preface;
-        $this->postfix = $postfix;
-    }
-}
 
 
 class proassign_plugin_header implements renderable {

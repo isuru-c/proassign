@@ -59,8 +59,7 @@ class mod_proassign_mod_form extends moodleform_mod {
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');		
 		$this->standard_intro_elements('Description');		
-		$mform->addElement('filemanager', 'introattachments', 'Additional files', null, array('subdirs' => 0, 'maxbytes' => $COURSE->maxbytes) );
-			
+		
 		// Submission period header
 		
 		$mform->addElement('header', 'submissionperiod', 'Submission period');
