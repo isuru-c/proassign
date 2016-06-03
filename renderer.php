@@ -22,6 +22,11 @@ class mod_proassign_renderer extends plugin_renderer_base {
         if ($header->preface) {
             $out .= $header->preface;
         }
+		
+		// Show links
+		
+		$out .= $this->render_header_links($header->coursemoduleid);
+
 
         if ($header->showintro) {
             $out .= $this->output->box_start('generalbox boxaligncenter', 'intro');
@@ -30,14 +35,32 @@ class mod_proassign_renderer extends plugin_renderer_base {
             $out .= $this->output->box_end();
         }
 		
+        return $out;
+    }
+	
+	public function render_header_links($id){
+		$out = '';
+		
 		$out .= $this->output->container_start('testcaselinks');
-        $urlparams = array('id' => $header->coursemoduleid, 'action'=>'testcases');
+        $urlparams = array('id' => $id, 'action'=>'');
+        $url = new moodle_url('/mod/proassign/view.php', $urlparams);
+        $out .= $this->output->action_link($url, 'Assignment');
+        $out .= $this->output->container_end();
+		
+		$out .= $this->output->container_start('testcaselinks');
+        $urlparams = array('id' => $id, 'action'=>'testcases');
         $url = new moodle_url('/mod/proassign/view.php', $urlparams);
         $out .= $this->output->action_link($url, 'Test cases');
         $out .= $this->output->container_end();
-
-        return $out;
-    }
+		
+		$out .= $this->output->container_start('testcaselinks');
+        $urlparams = array('id' => $id, 'action'=>'viewsubmission');
+        $url = new moodle_url('/mod/proassign/view.php', $urlparams);
+        $out .= $this->output->action_link($url, 'Submission');
+        $out .= $this->output->container_end();
+		
+		return $out;
+	}
 	
 	public function render_proassign_test_case(proassign_test_case $test_case){
 		global $DB;
@@ -51,13 +74,11 @@ class mod_proassign_renderer extends plugin_renderer_base {
         $heading = format_string($test_case->proassign->name, false, array('context' => $test_case->context));
         $out .= $this->output->heading($heading);
 		
-		$out .= 'All the test cases of ' . $test_case->proassign->name . ' are listed here.</br>';
+		$out .= $this->render_header_links($test_case->coursemoduleid);
 		
-		$out .= $this->output->container_start('testcaseheader');
-        $urlparams = array('id' => $test_case->coursemoduleid, 'action'=>'');
-        $url = new moodle_url('/mod/proassign/view.php', $urlparams);
-        $out .= $this->output->action_link($url, 'Back to assignment');
-        $out .= $this->output->container_end();
+		$out .= '</br>All the test cases of ' . $test_case->proassign->name . ' are listed here.</br>';
+		
+		
 		
 
 		$out .= $this->output->container_start('testcasesummary');
