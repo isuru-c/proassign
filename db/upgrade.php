@@ -267,5 +267,74 @@ function xmldb_proassign_upgrade($oldversion) {
 		upgrade_mod_savepoint(true, 2016060122, 'proassign');
 	}
 		
+	if($oldversion < 2016060300){
+		
+		$table = new xmldb_table('proassign');
+		$field = new xmldb_field('use1', XMLDB_TYPE_INTEGER, '2', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'timecreated');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('input1', XMLDB_TYPE_TEXT, 'medium', null, null, null, null, 'use1');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('output1', XMLDB_TYPE_TEXT, 'medium', null, null, null, null, 'input1');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('visible1', XMLDB_TYPE_INTEGER, '2', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'output1');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('mark1', XMLDB_TYPE_INTEGER, '2', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'visible1');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$field = new xmldb_field('use2', XMLDB_TYPE_INTEGER, '2', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'mark1');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('input2', XMLDB_TYPE_TEXT, 'medium', null, null, null, null, 'use2');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('output2', XMLDB_TYPE_TEXT, 'medium', null, null, null, null, 'input2');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('visible2', XMLDB_TYPE_INTEGER, '2', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'output2');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('mark2', XMLDB_TYPE_INTEGER, '2', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'visible2');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		$field = new xmldb_field('use3', XMLDB_TYPE_INTEGER, '2', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'mark2');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('input3', XMLDB_TYPE_TEXT, 'medium', null, null, null, null, 'use3');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('output3', XMLDB_TYPE_TEXT, 'medium', null, null, null, null, 'input3');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('visible3', XMLDB_TYPE_INTEGER, '2', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'output3');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		$field = new xmldb_field('mark3', XMLDB_TYPE_INTEGER, '2', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '0', 'visible3');
+		if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+		
+		upgrade_mod_savepoint(true, 2016060300, 'proassign');
+	}
+	
     return true;
 }

@@ -60,6 +60,50 @@ class mod_proassign_mod_form extends moodleform_mod {
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');		
 		$this->standard_intro_elements('Description');		
 		
+		// Test cases header
+		
+		$mform->addElement('header', 'testcase', 'Test cases');
+		
+		$mform->addElement('static', 'description', '', 'Fill followings to use test case 1');
+		$mform->addElement('checkbox', 'use1', 'Use test case 1');		
+		$mform->addElement('textarea', 'input1', 'Input', 'wrap="virtual" rows="6" cols="100"');
+		$mform->addElement('textarea', 'output1', 'Output', 'wrap="virtual" rows="6" cols="100"');
+		$mform->addElement('checkbox', 'visible1', 'Visible for students');
+		$mform->addElement('text', 'mark1', 'Marks for test case', array('size' => '5'));
+		$mform->setType('mark1', PARAM_INT);
+		$mform->disabledIf('input1', 'use1');
+		$mform->disabledIf('output1', 'use1');
+		$mform->disabledIf('visible1', 'use1');
+		$mform->disabledIf('mark1', 'use1');
+		
+		$mform->addElement('static', '', '---------------------------', '--------------------------------------------------------------------------------------------------------------------------------------');
+		
+		$mform->addElement('static', 'description', '', 'Fill followings to use test case 1');
+		$mform->addElement('checkbox', 'use2', 'Use test case 2');		
+		$mform->addElement('textarea', 'input2', 'Input', 'wrap="virtual" rows="6" cols="100"');
+		$mform->addElement('textarea', 'output2', 'Output', 'wrap="virtual" rows="6" cols="100"');
+		$mform->addElement('checkbox', 'visible2', 'Visible for students');
+		$mform->addElement('text', 'mark2', 'Marks for test case', array('size' => '5'));
+		$mform->setType('mark2', PARAM_INT);
+		$mform->disabledIf('input2', 'use2');
+		$mform->disabledIf('output2', 'use2');
+		$mform->disabledIf('visible2', 'use2');
+		$mform->disabledIf('mark2', 'use2');
+		
+		$mform->addElement('static', '', '---------------------------', '--------------------------------------------------------------------------------------------------------------------------------------');
+		
+		$mform->addElement('static', 'description', '', 'Fill followings to use test case 1');
+		$mform->addElement('checkbox', 'use3', 'Use test case 3');		
+		$mform->addElement('textarea', 'input3', 'Input', 'wrap="virtual" rows="6" cols="100"');
+		$mform->addElement('textarea', 'output3', 'Output', 'wrap="virtual" rows="6" cols="100"');
+		$mform->addElement('checkbox', 'visible3', 'Visible for students');
+		$mform->addElement('text', 'mark3', 'Marks for test case', array('size' => '5'));
+		$mform->setType('mark3', PARAM_INT);
+		$mform->disabledIf('input3', 'use3');
+		$mform->disabledIf('output3', 'use3');
+		$mform->disabledIf('visible3', 'use3');
+		$mform->disabledIf('mark3', 'use3');
+		
 		// Submission period header
 		
 		$mform->addElement('header', 'submissionperiod', 'Submission period');

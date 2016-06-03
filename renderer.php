@@ -67,16 +67,34 @@ class mod_proassign_renderer extends plugin_renderer_base {
 		$t = new html_table();        
 		$this->add_table_row($t, 'start', null, null, null, null);
 		
-		$sql = 'SELECT COUNT(id) FROM mdl_proassign_testcases WHERE proassign = 1';
+		//$sql = 'SELECT COUNT(id) FROM mdl_proassign_testcases WHERE proassign = 1';
 		
-        $count = $DB->count_records_sql($sql, null);
+        //$count = $DB->count_records_sql($sql, null);
 		
-		if($count > 0){
-			$out .= html_writer::table($t);
-		}
-		else{
+		$data = $DB->get_record_sql('SELECT * FROM mdl_proassign WHERE id = ' . $test_case->proassign->id, null);
+		
+		if($data->use1==0 && $data->use2==0 && $data->use3==0){
 			$out .= html_writer::table($t);
 			$out .= '<i>There is no any test case yet..</i></br>';
+		}
+		else{
+			for($i=1; $i<4; $i=$i+1){
+				$u = 'use'.$i;
+				if($data->use1==1){
+					$name = '#testcase' . $i;
+					$evaluating = 'Yes';
+					$x = 'mark'.$i;
+					$mark = $data->$x;
+					$y = 'visible'.$i;
+					$visible = 'No';
+					if($data->$y==1){
+						$visible = 'Yes';
+					}
+					$link = '';				
+					$this->add_table_row($t, $name, $evaluating, $mark, $visible, $link);
+				}
+			}
+			$out .= html_writer::table($t);			
 		}		
 		
         $out .= $this->output->box_end();	
