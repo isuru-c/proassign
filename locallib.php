@@ -24,8 +24,6 @@ class proassign{
 	private $output;
     private $coursemodule;
     private $cache;
-    private $submissionplugins;
-    private $feedbackplugins;
     private $returnaction = 'view';
     private $returnparams = array();
     private static $modulename = null;
@@ -118,164 +116,22 @@ class proassign{
 		if (!empty($this->get_course_module()->id)) {
             $nextpageparams['id'] = $this->get_course_module()->id;
         }
-				
-		{
-		if ($action == 'savesubmission') {
-            $action = 'editsubmission';
-            if ($this->process_save_submission($mform, $notices)) {
-                $action = 'redirect';
-                $nextpageparams['action'] = 'view';
-            }
-        } else if ($action == 'editprevioussubmission') {
-            $action = 'editsubmission';
-            if ($this->process_copy_previous_attempt($notices)) {
-                $action = 'redirect';
-                $nextpageparams['action'] = 'editsubmission';
-            }
-        } else if ($action == 'lock') {
-            $this->process_lock_submission();
-            $action = 'redirect';
-            $nextpageparams['action'] = 'grading';
-        } else if ($action == 'addattempt') {
-            $this->process_add_attempt(required_param('userid', PARAM_INT));
-            $action = 'redirect';
-            $nextpageparams['action'] = 'grading';
-        } else if ($action == 'reverttodraft') {
-            $this->process_revert_to_draft();
-            $action = 'redirect';
-            $nextpageparams['action'] = 'grading';
-        } else if ($action == 'unlock') {
-            $this->process_unlock_submission();
-            $action = 'redirect';
-            $nextpageparams['action'] = 'grading';
-        } else if ($action == 'setbatchmarkingworkflowstate') {
-            $this->process_set_batch_marking_workflow_state();
-            $action = 'redirect';
-            $nextpageparams['action'] = 'grading';
-        } else if ($action == 'setbatchmarkingallocation') {
-            $this->process_set_batch_marking_allocation();
-            $action = 'redirect';
-            $nextpageparams['action'] = 'grading';
-        } else if ($action == 'confirmsubmit') {
-            $action = 'submit';
-            if ($this->process_submit_for_grading($mform, $notices)) {
-                $action = 'redirect';
-                $nextpageparams['action'] = 'view';
-            } else if ($notices) {
-                $action = 'viewsubmitforgradingerror';
-            }
-        } else if ($action == 'submitotherforgrading') {
-            if ($this->process_submit_other_for_grading($mform, $notices)) {
-                $action = 'redirect';
-                $nextpageparams['action'] = 'grading';
-            } else {
-                $action = 'viewsubmitforgradingerror';
-            }
-        } else if ($action == 'gradingbatchoperation') {
-            $action = $this->process_grading_batch_operation($mform);
-            if ($action == 'grading') {
-                $action = 'redirect';
-                $nextpageparams['action'] = 'grading';
-            }
-        } else if ($action == 'submitgrade') {
-            if (optional_param('saveandshownext', null, PARAM_RAW)) {
-                // Save and show next.
-                $action = 'grade';
-                if ($this->process_save_grade($mform)) {
-                    $action = 'redirect';
-                    $nextpageparams['action'] = 'grade';
-                    $nextpageparams['rownum'] = optional_param('rownum', 0, PARAM_INT) + 1;
-                    $nextpageparams['useridlistid'] = optional_param('useridlistid', $this->get_useridlist_key_id(), PARAM_ALPHANUM);
-                }
-            } else if (optional_param('nosaveandprevious', null, PARAM_RAW)) {
-                $action = 'redirect';
-                $nextpageparams['action'] = 'grade';
-                $nextpageparams['rownum'] = optional_param('rownum', 0, PARAM_INT) - 1;
-                $nextpageparams['useridlistid'] = optional_param('useridlistid', $this->get_useridlist_key_id(), PARAM_ALPHANUM);
-            } else if (optional_param('nosaveandnext', null, PARAM_RAW)) {
-                $action = 'redirect';
-                $nextpageparams['action'] = 'grade';
-                $nextpageparams['rownum'] = optional_param('rownum', 0, PARAM_INT) + 1;
-                $nextpageparams['useridlistid'] = optional_param('useridlistid', $this->get_useridlist_key_id(), PARAM_ALPHANUM);
-            } else if (optional_param('savegrade', null, PARAM_RAW)) {
-                // Save changes button.
-                $action = 'grade';
-                if ($this->process_save_grade($mform)) {
-                    $action = 'redirect';
-                    $nextpageparams['action'] = 'savegradingresult';
-                }
-            } else {
-                // Cancel button.
-                $action = 'redirect';
-                $nextpageparams['action'] = 'grading';
-            }
-        } else if ($action == 'quickgrade') {
-            $message = $this->process_save_quick_grades();
-            $action = 'quickgradingresult';
-        } else if ($action == 'saveoptions') {
-            $this->process_save_grading_options();
-            $action = 'redirect';
-            $nextpageparams['action'] = 'grading';
-        } else if ($action == 'saveextension') {
-            $action = 'grantextension';
-            if ($this->process_save_extension($mform)) {
-                $action = 'redirect';
-                $nextpageparams['action'] = 'grading';
-            }
-        } else if ($action == 'revealidentitiesconfirm') {
-            $this->process_reveal_identities();
-            $action = 'redirect';
-            $nextpageparams['action'] = 'grading';
-        }
-		}
 		
 		$returnparams = array('rownum'=>optional_param('rownum', 0, PARAM_INT),
                               'useridlistid' => optional_param('useridlistid', $this->get_useridlist_key_id(), PARAM_ALPHANUM));
         $this->register_return_link($action, $returnparams);
 
-        // Now show the right view page.
+
         if ($action == 'redirect') {
             $nextpageurl = new moodle_url('/mod/proassign/view.php', $nextpageparams);
             redirect($nextpageurl);
             return;
-        } else if ($action == 'savegradingresult') {
-            $message = get_string('gradingchangessaved', 'assign');
-            $outpot .= $this->view_savegrading_result($message);
-        } else if ($action == 'quickgradingresult') {
-            $mform = null;
-            $outpot .= $this->view_quickgrading_result($message);
-        } else if ($action == 'grade') {
-            $outpot .= $this->view_single_grade_page($mform);
-        } else if ($action == 'viewpluginassignfeedback') {
-            $outpot .= $this->view_plugin_content('assignfeedback');
-        } else if ($action == 'viewpluginassignsubmission') {
-            $outpot .= $this->view_plugin_content('assignsubmission');
-        } else if ($action == 'editsubmission') {
-            $outpot .= $this->view_edit_submission_page($mform, $notices);
-        } else if ($action == 'grading') {
-            $outpot .= $this->view_grading_page();
-        } else if ($action == 'downloadall') {
-            $outpot .= $this->download_submissions();
-        } else if ($action == 'submit') {
-            $outpot .= $this->check_submit_for_grading($mform);
-        } else if ($action == 'grantextension') {
-            $outpot .= $this->view_grant_extension($mform);
-        } else if ($action == 'revealidentities') {
-            $outpot .= $this->view_reveal_identities_confirm($mform);
-        } else if ($action == 'plugingradingbatchoperation') {
-            $outpot .= $this->view_plugin_grading_batch_operation($mform);
-        } else if ($action == 'viewpluginpage') {
-             $outpot .= $this->view_plugin_page();
-        } else if ($action == 'viewcourseindex') {
-             $outpot .= $this->view_course_index();
-        } else if ($action == 'viewbatchsetmarkingworkflowstate') {
-             $outpot .= $this->view_batch_set_workflow_state($mform);
-        } else if ($action == 'viewbatchmarkingallocation') {
-            $outpot .= $this->view_batch_markingallocation($mform);
-        } else if ($action == 'viewsubmitforgradingerror') {
-            $out .= $this->view_error_page(get_string('submitforgrading', 'assign'), $notices);
         } else if($action == 'testcases'){
 			$out .= $this->view_test_cases();
+		} else if($action == 'newtestcase'){
+			$out .= $this->new_test_cases();
+		} else if($action == 'savetestcase'){
+			$out .= $this->save_test_cases();
 		} else {
             $out .= $this->view_main_page();
         }
@@ -299,35 +155,9 @@ class proassign{
 		
 		
         if ($this->can_view_grades()) {
-            $draft = 'draft';
-            $submitted = 'submitted';
-
-            // Group selector will only be displayed if necessary.
-            $currenturl = new moodle_url('/mod/proassign/view.php', array('id' => $this->get_course_module()->id));
-            $out .= groups_print_activity_menu($this->get_course_module(), $currenturl->out(), true);
-
-            $activitygroup = groups_get_activity_group($this->get_course_module());
-
-            
-                // The active group has already been updated in groups_print_activity_menu().
-                $countparticipants = $this->count_participants($activitygroup);
-                /*$summary = new proassign_grading_summary($countparticipants,
-                                                      $instance->submissiondrafts,
-                                                      $this->count_submissions_with_status($draft),
-                                                      $this->is_any_submission_plugin_enabled(),
-                                                      $this->count_submissions_with_status($submitted),
-                                                      $instance->cutoffdate,
-                                                      $instance->duedate,
-                                                      $this->get_course_module()->id,
-                                                      $this->count_submissions_need_grading(),
-                                                      null,
-                                                      false);
-                $out .= $this->get_renderer()->render($summary);*/
             
         }
-		
-        $grade = $this->get_user_grade($USER->id, false);
-        $submission = $this->get_user_submission($USER->id, false);
+
 		
         if ($this->can_view_submission($USER->id)) {
             //$out .= $this->view_student_summary($USER, true);
@@ -351,9 +181,40 @@ class proassign{
 		$instance = $this->get_instance();
 		$out = '';
 		
-		$out .= $this->get_renderer()->render(new proassign_test_case($instance, $this->get_context(), $this->get_course_module()->id, $this->can_manage_assignment()));
+		$out .= $this->get_renderer()->render(new proassign_test_case($instance, $this->get_context(), $this->get_course_module()->id, 
+																	  $this->can_manage_assignment()));
 		
 		$out .= $this->view_footer();
+		
+		return $out;		
+	}
+	
+	protected function new_test_cases(){
+		global $CFG, $DB, $USER, $PAGE;
+		
+		$instance = $this->get_instance();
+		$out = '';
+		
+		$out .= $this->get_renderer()->render(new proassign_new_test_case($instance, $this->get_context(), $this->get_course_module()->id, 
+																	  $this->can_manage_assignment()));
+		
+		$out .= $this->view_footer();
+		
+		return $out;		
+	}
+	
+	protected function save_test_cases(){
+		global $CFG, $DB, $USER, $PAGE;
+		
+		$instance = $this->get_instance();
+		$out = '';
+		
+		$out .= $this->get_renderer()->render(new proassign_test_case($instance, $this->get_context(), $this->get_course_module()->id, 
+																	  $this->can_manage_assignment()));
+		
+		$out .= $this->view_footer();
+		
+		print_r(optional_param('Mouse', 0, PARAM_TEXT));
 		
 		return $out;		
 	}

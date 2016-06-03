@@ -39,6 +39,21 @@ class proassign_test_case implements renderable {
     }
 }
 
+class proassign_new_test_case implements renderable {
+	
+	public $proassign = null;
+    public $context = null;
+    public $coursemoduleid = 0;
+	public $editmode = false;
+	
+	public function __construct(stdClass $proassign, $context, $coursemoduleid, $editmode) {
+        $this->proassign = $proassign;
+        $this->context = $context;
+        $this->coursemoduleid = $coursemoduleid;
+		$this->editmode = $editmode;
+    }
+}
+
 
 class proassign_submit_for_grading_page implements renderable {
     /** @var array $notifications is a list of notification messages returned from the plugins */
