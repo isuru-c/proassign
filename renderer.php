@@ -54,8 +54,8 @@ class mod_proassign_renderer extends plugin_renderer_base {
         $out .= $this->output->container_end();
 		
 		$out .= $this->output->container_start('testcaselinks');
-        $urlparams = array('id' => $id, 'action'=>'viewsubmission');
-        $url = new moodle_url('/mod/proassign/view.php', $urlparams);
+        $urlparams = array('id' => $id);
+        $url = new moodle_url('/mod/proassign/submission.php', $urlparams);
         $out .= $this->output->action_link($url, 'Submission');
         $out .= $this->output->container_end();
 		
@@ -167,6 +167,12 @@ class mod_proassign_renderer extends plugin_renderer_base {
 		
 		return $out;
 	}	
+	
+	public function render_proassign_submission(proassign_submission $submission){
+		$out = '';
+		
+		return $out;
+	}
 	
 	private function add_table_row(html_table $table, $test_case_name, $evaluating, $marks, $visible, $link) {
         $row = new html_table_row();
