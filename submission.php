@@ -45,16 +45,3 @@ $PAGE->set_context($context);
 $proassign = new proassign($context, $cm, $course);
 
 echo $proassign->view_submission_page(null);
-
-/*if(!$vpl->is_submit_able()){
-    notice(get_string('notavailable'));
-}*/
-
-$userid = $USER->id;
-/*if($vpl->get_instance()->restrictededitor){
-	$vpl->require_capability(VPL_MANAGE_CAPABILITY);
-}
-$vpl->require_capability(VPL_SUBMIT_CAPABILITY);
-$vpl->network_check();
-$vpl->password_check();*/
-

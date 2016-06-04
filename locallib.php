@@ -336,73 +336,113 @@ class proassign{
     		vpl_inmediate_redirect(vpl_mod_href('view.php','id',$id));
     		die;
 		}
+		$userid = $USER->id;
 		
-		if ($fromform=$mform->get_data()){
+		$form_data = $mform->get_data();
+		
+		$submitted = false;
+		$error='';
+		$sql = '';
+		
+		if ($form_data){
 			$raw_POST_size = strlen(file_get_contents("php://input"));
 			if($_SERVER['CONTENT_LENGTH'] != $raw_POST_size){
 				$error="NOT SAVED (Http POST error: CONTENT_LENGTH expected ".$_SERVER['CONTENT_LENGTH']." found $raw_POST_size)";
 				notice($error,vpl_mod_href('forms/submission.php','id',$id,'userid',$userid),$vpl->get_course());
 				die;
 			}
-			$rfn = $vpl->get_required_fgm();
-			$minfiles = count($rfn->getFilelist());
-			$files=array();
-			for($i = 0 ; $i < $instance->maxfiles ; $i++ ){
-				$attribute = 'file'.$i;
-				$name = trim($mform->get_new_filename($attribute));
-				$data = $mform->get_file_content($attribute);
-				if($data !== false && $name !== false ){
-				//autodetect data file encode
-					$ext = strtolower (pathinfo ($name, PATHINFO_EXTENSION));
-					if(in_array($ext, Array('jar','zip','jpg','gif'))){
-						$data = chunk_split(base64_encode($data));
-						$name .= '.b64';
-					}else{
-						if($data != ''){
-							$encode = mb_detect_encoding($data, 'UNICODE, UTF-16, UTF-8, ISO-8859-1',true);
-							if($encode > ''){ //If code detected
-								$data = iconv($encode,'UTF-8',$data);
-							}
+			
+			$name = trim($mform->get_new_filename('file'));
+			$data = $mform->get_file_content('file');
+					
+			$filesubmission = 0;
+			$filename = ' ';
+			
+			if($data !== false && $name !== false ){
+				$ext = strtolower (pathinfo ($name, PATHINFO_EXTENSION));
+				if(in_array($ext, Array('jar','zip','jpg','gif'))){
+					$data = chunk_split(base64_encode($data));
+					$name .= '.b64';
+				}else{
+					if($data != ''){
+						$encode = mb_detect_encoding($data, 'UNICODE, UTF-16, UTF-8, ISO-8859-1',true);
+						if($encode > ''){ //If code detected
+							$data = iconv($encode,'UTF-8',$data);
 						}
 					}
-					$files[] = array('name' => $name, 'data' => $data);
-				}else{
-					if($i < $minfiles){ //add empty file if required
-						$files[] = array('name' => '', 'data' => '');
-					}
 				}
-			}
-			$error_message='';
-			if($subid=$vpl->add_submission($userid,$files,$fromform->comments,$error_message)){
-				\mod_vpl\event\submission_uploaded::log(array(
-						'objectid' => $subid,
-						'context' => $vpl->get_context(),
-						'relateduserid' => ($USER->id != $userid?$userid:null)
-				));
-
-				//if evaluate on submission
-				if($instance->evaluate && $instance->evaluateonsubmission){
-					notice(get_string('saved',VPL),
-						vpl_mod_href('forms/evaluation.php','id',$id,'userid',$userid));
-				}
-				notice(get_string('saved',VPL),
-					vpl_mod_href('forms/submissionview.php','id',$id,'userid',$userid));
+				$file = array('name' => $name, 'data' => $data);
+				$filename = $name . '_' . $userid . '_' . time();
+				$filesubmission = 1;
 			}else{
-				echo $OUTPUT->box(get_string('notsaved',VPL));
-				notice($error_message,vpl_mod_href('forms/submission.php','id',$id,'userid',$userid),$vpl->get_course());
+				$filesubmission = 0;
 			}
-		}
-		//Display page
+			
+			$error='';
+			
+			$textcode = $form_data->code;
+			$textsubmission = 1;
+			if($textcode == ''){
+				$textsubmission = 0;
+			}
+			
+			$submissiondata = new stdClass();
+			$submissiondata->proassign = $this->get_instance()->id;
+			$submissiondata->userid = $userid;
+			$submissiondata->datesubmitted = time();
+			$submissiondata->textsubmission = $textsubmission;
+			$submissiondata->textcode = $textcode;
+			$submissiondata->filesubmission = $filesubmission;
+			$submissiondata->filename = $filename;
+			
+			$sql = 'INSERT INTO mdl_proassign_submission (proassign, userid, datesubmitted, textsubmission, textcode, filesubmission, filename) VALUES (';
+			$sql .= $this->get_instance()->id . ',' . $userid . ',' . time() . ',' . $textsubmission . ',"' . $textcode . '",' . $filesubmission . ',"' . $filename . '")';
+			
+			print_r($sql);
+			
+			if(!$DB->execute($sql, null)){
+				$error="Submission saving failed";
+			}
+			
+			/*$submissionid = $DB->insert_record('proassign_submission', $submissiondata , TRUE);
+			if(!$submissionid){
+				$error="Submission saving failed";
+			}*/
+			//Save files
+			
+			if($filesubmission){
+				$data_directory = $CFG->dataroot . '/proassign/submission';
 
-		$data = new stdClass();
-		$data->id = $id;
-		$mform->set_data($data);
-		$mform->display();
+				$fgm = new file_group_process($filename, $data_directory);
+				$fgm->addFile($filename, $data);
+				/*$submission->remove_grade();
+				//if no submitted by grader and not group activity
+				//remove near submmissions
+				if($submittedby == ''){
+					$this->delete_overflow_submissions($userid);
+				}*/
+			}
+			
+			$submitted = true;
+		}
 		
+		if($submitted){
+			echo $error;
+			echo $sql;
+		}else{
+			$data = new stdClass();
+			$data->id = $id;
+			$mform->set_data($data);
+			$mform->display();
+		}
 		echo $this->view_footer();
 
 
     }
+	
+	public function view_submitted_page(){
+		
+	}
 	
 	public function render_header_links($id){
 		global $OUTPUT;
