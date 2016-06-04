@@ -330,114 +330,194 @@ class proassign{
 
 		echo $this->render_header_links($id);
 		
-		$mform = new mod_proassign_submission_form('submission.php', $this);
+		echo $OUTPUT->container_start('submission');
+        echo $OUTPUT->heading('Submission', 3);
+        echo $OUTPUT->box_start('submission');
 		
-		if ($mform->is_cancelled()){
-    		vpl_inmediate_redirect(vpl_mod_href('view.php','id',$id));
-    		die;
-		}
+		$proassign = $this->get_instance()->id;
 		$userid = $USER->id;
 		
-		$form_data = $mform->get_data();
+		/*****************************************************************************************************************/
 		
-		$submitted = false;
-		$error='';
-		$sql = '';
+		// Admin reagon
 		
-		if ($form_data){
-			$raw_POST_size = strlen(file_get_contents("php://input"));
-			if($_SERVER['CONTENT_LENGTH'] != $raw_POST_size){
-				$error="NOT SAVED (Http POST error: CONTENT_LENGTH expected ".$_SERVER['CONTENT_LENGTH']." found $raw_POST_size)";
-				notice($error,vpl_mod_href('forms/submission.php','id',$id,'userid',$userid),$vpl->get_course());
+		if($this->can_manage_assignment()){
+			
+			$OUTPUT->box_end();	
+			$OUTPUT->container_end();
+			echo $this->view_footer();
+			return;
+		}
+		
+		/*****************************************************************************************************************/
+		
+		// Student region
+		
+		// Check if the user has submiited earlier
+		
+		$sql = "SELECT * FROM mdl_proassign_submission WHERE proassign=" . $proassign . " AND userid=" . $userid;
+		$data = $DB->get_record_sql($sql, null );
+		
+		if($data){
+			
+			/**************************************************************************************************************/
+			
+			// Sabmission have been made, show submission states
+			
+			
+			$textsubmission = "No";
+			$filesubmission = "No";
+			if($data->textsubmission){
+				$textsubmission = "Yes";
+			}
+			if($data->filesubmission){
+				$filesubmission = "Yes";	
+			}
+			
+			$timestamp = $data->datesubmitted;
+			$datesubmitted = date('Y-m-d H:i:s a', $timestamp);
+			
+			$marks = "Not yet graded";
+			
+			$table = new html_table();
+			
+			echo "</br><b>Assignment has been submitted </b> </br></br>";
+			
+			$this->add_table_row($table, 'Submitted date', $datesubmitted);
+			$this->add_table_row($table, 'Text submission', $textsubmission);
+			$this->add_table_row($table, 'File submission', $filesubmission);
+			$this->add_table_row($table, 'Marks', $marks);
+						
+			echo html_writer::table($table);
+			
+		}else{
+			$mform = new mod_proassign_submission_form('submission.php', $this);
+
+			if ($mform->is_cancelled()){
+				vpl_inmediate_redirect(vpl_mod_href('view.php','id',$id));
 				die;
 			}
+
+			$form_data = $mform->get_data();
+
+			$submitted = false;
+			$error='';
+			$sql = '';
 			
-			$name = trim($mform->get_new_filename('file'));
-			$data = $mform->get_file_content('file');
-					
-			$filesubmission = 0;
-			$filename = ' ';
+			/**************************************************************************************************************************/
+
+			// Submission saving region
 			
-			if($data !== false && $name !== false ){
-				$ext = strtolower (pathinfo ($name, PATHINFO_EXTENSION));
-				if(in_array($ext, Array('jar','zip','jpg','gif'))){
-					$data = chunk_split(base64_encode($data));
-					$name .= '.b64';
-				}else{
-					if($data != ''){
-						$encode = mb_detect_encoding($data, 'UNICODE, UTF-16, UTF-8, ISO-8859-1',true);
-						if($encode > ''){ //If code detected
-							$data = iconv($encode,'UTF-8',$data);
+			if ($form_data){
+				$raw_POST_size = strlen(file_get_contents("php://input"));
+				if($_SERVER['CONTENT_LENGTH'] != $raw_POST_size){
+					$error="NOT SAVED (Http POST error: CONTENT_LENGTH expected ".$_SERVER['CONTENT_LENGTH']." found $raw_POST_size)";
+					notice($error,vpl_mod_href('forms/submission.php','id',$id,'userid',$userid),$vpl->get_course());
+					die;
+				}
+
+				$name = trim($mform->get_new_filename('file'));
+				$data = $mform->get_file_content('file');
+
+				$filesubmission = 0;
+				$filename = ' ';
+
+				if($data !== false && $name !== false ){
+					$ext = strtolower (pathinfo ($name, PATHINFO_EXTENSION));
+					if(in_array($ext, Array('jar','zip','jpg','gif'))){
+						$data = chunk_split(base64_encode($data));
+						$name .= '.b64';
+					}else{
+						if($data != ''){
+							$encode = mb_detect_encoding($data, 'UNICODE, UTF-16, UTF-8, ISO-8859-1',true);
+							if($encode > ''){ //If code detected
+								$data = iconv($encode,'UTF-8',$data);
+							}
 						}
 					}
+					$file = array('name' => $name, 'data' => $data);
+					$filename = $name . '_' . $userid . '_' . time();
+					$filesubmission = 1;
+				}else{
+					$filesubmission = 0;
 				}
-				$file = array('name' => $name, 'data' => $data);
-				$filename = $name . '_' . $userid . '_' . time();
-				$filesubmission = 1;
-			}else{
-				$filesubmission = 0;
-			}
-			
-			$error='';
-			
-			$textcode = $form_data->code;
-			$textsubmission = 1;
-			if($textcode == ''){
-				$textsubmission = 0;
-			}
-			
-			$submissiondata = new stdClass();
-			$submissiondata->proassign = $this->get_instance()->id;
-			$submissiondata->userid = $userid;
-			$submissiondata->datesubmitted = time();
-			$submissiondata->textsubmission = $textsubmission;
-			$submissiondata->textcode = $textcode;
-			$submissiondata->filesubmission = $filesubmission;
-			$submissiondata->filename = $filename;
-			
-			$sql = 'INSERT INTO mdl_proassign_submission (proassign, userid, datesubmitted, textsubmission, textcode, filesubmission, filename) VALUES (';
-			$sql .= $this->get_instance()->id . ',' . $userid . ',' . time() . ',' . $textsubmission . ',"' . $textcode . '",' . $filesubmission . ',"' . $filename . '")';
-			
-			print_r($sql);
-			
-			if(!$DB->execute($sql, null)){
-				$error="Submission saving failed";
-			}
-			
-			/*$submissionid = $DB->insert_record('proassign_submission', $submissiondata , TRUE);
-			if(!$submissionid){
-				$error="Submission saving failed";
-			}*/
-			//Save files
-			
-			if($filesubmission){
-				$data_directory = $CFG->dataroot . '/proassign/submission';
 
-				$fgm = new file_group_process($filename, $data_directory);
-				$fgm->addFile($filename, $data);
-				/*$submission->remove_grade();
-				//if no submitted by grader and not group activity
-				//remove near submmissions
-				if($submittedby == ''){
-					$this->delete_overflow_submissions($userid);
+				$error='';
+
+				$textcode = $form_data->code;
+				$textsubmission = 1;
+				if($textcode == ''){
+					$textsubmission = 0;
+				}
+
+				$submissiondata = new stdClass();
+				$submissiondata->proassign = $proassign;
+				$submissiondata->userid = $userid;
+				$submissiondata->datesubmitted = time();
+				$submissiondata->textsubmission = $textsubmission;
+				$submissiondata->textcode = $textcode;
+				$submissiondata->filesubmission = $filesubmission;
+				$submissiondata->filename = $filename;
+
+				$sql = 'INSERT INTO mdl_proassign_submission (proassign, userid, datesubmitted, textsubmission, textcode, filesubmission, filename) VALUES (';
+				$sql .= $this->get_instance()->id . ',' . $userid . ',' . time() . ',' . $textsubmission . ',"' . $textcode . '",' . $filesubmission . ',"' . $filename . '")';
+
+				//print_r($sql);
+
+				if(!$DB->execute($sql, null)){
+					$error="Submission saving failed";
+				}
+
+				/*$submissionid = $DB->insert_record('proassign_submission', $submissiondata , TRUE);
+				if(!$submissionid){
+					$error="Submission saving failed";
 				}*/
+				//Save files
+
+				if($filesubmission){
+					$data_directory = $CFG->dataroot . '/proassign/submission';
+
+					$fgm = new file_group_process($filename, $data_directory);
+					$fgm->addFile($filename, $data);
+					/*$submission->remove_grade();
+					//if no submitted by grader and not group activity
+					//remove near submmissions
+					if($submittedby == ''){
+						$this->delete_overflow_submissions($userid);
+					}*/
+				}
+
+				$submitted = true;
 			}
-			
-			$submitted = true;
+
+			if($submitted){
+				echo $error;
+			}else{
+				$data = new stdClass();
+				$data->id = $id;
+				$mform->set_data($data);
+				$mform->display();
+			}
 		}
 		
-		if($submitted){
-			echo $error;
-			echo $sql;
-		}else{
-			$data = new stdClass();
-			$data->id = $id;
-			$mform->set_data($data);
-			$mform->display();
-		}
+		// Saving region ends
+		
+		/**************************************************************************************************************************/
+		
+		$OUTPUT->box_end();	
+		$OUTPUT->container_end();
 		echo $this->view_footer();
 
 
+    }
+	
+	private function add_table_row(html_table $table, $col1, $col2) {
+        $row = new html_table_row();
+		
+        $cell1 = new html_table_cell($col1);
+        $cell2 = new html_table_cell($col2);
+        $row->cells = array($cell1, $cell2);
+        $table->data[] = $row;
     }
 	
 	public function view_submitted_page(){
