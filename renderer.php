@@ -27,15 +27,46 @@ class mod_proassign_renderer extends plugin_renderer_base {
 		
 		$out .= $this->render_header_links($header->coursemoduleid);
 
+		$proassign = $header->proassign;
 
-        if ($header->showintro) {
-            $out .= $this->output->box_start('generalbox boxaligncenter', 'intro');
-            $out .= format_module_intro('proassign', $header->proassign, $header->coursemoduleid);
-            $out .= $header->postfix;
-            $out .= $this->output->box_end();
-        }
+        $out .= $this->output->box_start('generalbox boxaligncenter', 'intro');
+        
+		$out .= '</br><b>Description</b></br>';
+		$out .= format_module_intro('proassign', $header->proassign, $header->coursemoduleid);
+		
+		$out .= '</br><b>Submission details</b></br>';
+        
+		$table = new html_table();
+		
+		$submission_state = "--";
+		
+		$name = $proassign->name;
+		$start_date = date('Y-m-d h:i:s a', $proassign->startdate);
+		$due_date = date('Y-m-d h:i:s a', $proassign->duedate);
+		
+		$marks = "Not yet grade";
+		
+		$this->add_table_row2($table, "Submission state", $submission_state);
+		$this->add_table_row2($table, "Assignment name", $name);
+		$this->add_table_row2($table, "Start date", $start_date);
+		$this->add_table_row2($table, "Due date", $due_date);
+		$this->add_table_row2($table, "Marks", $marks);
+		
+		$out .= html_writer::table($table);
+		
+		$out .= $this->output->box_end();
+        
 		
         return $out;
+    }
+	
+	private function add_table_row2(html_table $table, $col1, $col2) {
+        $row = new html_table_row();
+		
+        $cell1 = new html_table_cell($col1);
+        $cell2 = new html_table_cell($col2);
+        $row->cells = array($cell1, $cell2);
+        $table->data[] = $row;
     }
 	
 	public function render_header_links($id){
