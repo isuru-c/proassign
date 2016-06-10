@@ -7,6 +7,8 @@ require_once($CFG->dirroot . '/mod/proassign/locallib.php');
 class mod_proassign_renderer extends plugin_renderer_base {
 
     public function render_proassign_header(proassign_header $header) {
+		global $USER, $DB;
+		
         $out = '';
 
         if ($header->subpage) {
@@ -34,17 +36,31 @@ class mod_proassign_renderer extends plugin_renderer_base {
 		$out .= '</br><b>Description</b></br>';
 		$out .= format_module_intro('proassign', $header->proassign, $header->coursemoduleid);
 		
-		$out .= '</br><b>Submission details</b></br>';
+		$out .= '</br></br><b>Submission details</b></br>';
         
 		$table = new html_table();
 		
-		$submission_state = "--";
+		$proassign_id = $proassign->id;
+		$user_id = $USER->id;
+		
+		$sql = "SELECT * FROM mdl_proassign_submission WHERE proassign=" . $proassign_id . " AND userid=" . $user_id;
+		$data = $DB->get_record_sql($sql, null );
+		
+		if($data){
+			$submission_state = "Assignment has been submitted";
+		}else{
+			$submission_state = "No attempt yet";
+		}
 		
 		$name = $proassign->name;
 		$start_date = date('Y-m-d h:i:s a', $proassign->startdate);
 		$due_date = date('Y-m-d h:i:s a', $proassign->duedate);
 		
-		$marks = "Not yet grade";
+		if($data){
+			$marks = "Not yet grade";
+		}else{
+			$marks = "--";	
+		}
 		
 		$this->add_table_row2($table, "Submission state", $submission_state);
 		$this->add_table_row2($table, "Assignment name", $name);

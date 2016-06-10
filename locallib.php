@@ -331,7 +331,8 @@ class proassign{
 		echo $this->render_header_links($id);
 		
 		echo $OUTPUT->container_start('submission');
-        echo $OUTPUT->heading('Submission', 3);
+		echo '</br>';
+        echo $OUTPUT->heading('Submission', 4);
         echo $OUTPUT->box_start('submission');
 		
 		$proassign = $this->get_instance()->id;
@@ -342,6 +343,14 @@ class proassign{
 		// Admin reagon
 		
 		if($this->can_manage_assignment()){
+			
+			echo "Submission summery of students</br>";
+			
+			$course_id = $COURSE->id;
+			
+			$table = new html_table();
+			
+			echo html_writer::table($table);
 			
 			$OUTPUT->box_end();	
 			$OUTPUT->container_end();
@@ -394,8 +403,11 @@ class proassign{
 			$mform = new mod_proassign_submission_form('submission.php', $this);
 
 			if ($mform->is_cancelled()){
-				vpl_inmediate_redirect(vpl_mod_href('view.php','id',$id));
-				die;
+				
+				$OUTPUT->box_end();	
+				$OUTPUT->container_end();
+				echo $this->view_footer();
+				return;
 			}
 
 			$form_data = $mform->get_data();
@@ -518,7 +530,7 @@ class proassign{
         $cell2 = new html_table_cell($col2);
         $row->cells = array($cell1, $cell2);
         $table->data[] = $row;
-    }
+	}
 	
 	public function view_submitted_page(){
 		

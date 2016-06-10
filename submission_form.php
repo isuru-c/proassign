@@ -42,15 +42,21 @@ class mod_proassign_submission_form extends moodleform {
 	
     function definition(){
     	global $CFG;
+		
+		
     
 		$mform =& $this->_form;
-        $mform->addElement('header', 'headersubmission', 'Submission');
+        
+		$data = $this->get_data();
+		
+		$mform->addElement('header', 'headersubmission', 'Submission');
         //Identification info
         $mform->addElement('hidden','id');
         $mform->setType('id', PARAM_INT);
         //$mform->addElement('hidden','userid',0);
         //$mform->setType('userid', PARAM_INT);
         //Comments
+		$mform->addElement('static', 'I', 'Important', 'Do not use file submission yet. It is not completed yet');
         $mform->addElement('textarea', 'code', 'Enter your solution', array('cols'=>'100', 'rows'=>6));
         $mform->setType('code', PARAM_TEXT);
 
