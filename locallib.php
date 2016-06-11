@@ -339,14 +339,67 @@ class proassign{
 		$userid = $USER->id;
 		
 		/*****************************************************************************************************************/
-		
-		// Admin reagon
+		/* Admin reagon */
 		
 		if($this->can_manage_assignment()){
 			
+			$grade_n = optional_param('grade', 0, PARAM_INT);
 			$user_id = 	optional_param('userid', 0, PARAM_INT);
 			
+			if($grade_n == 2){
+			
+				
+				$grade_n = 1;
+			}
+			
+			if($grade_n == 1){
+			
+				/********************************************************************************************************/
+				/* view grading page */
+				
+				$urlparams = array('id' => $id, 'userid'=>$userid);
+				$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+				$backlink = $OUTPUT->action_link($url, 'Back to submission details');
+				
+				echo "</br>" . $backlink . "</br>";
+				
+				$sql = "SELECT * FROM mdl_proassign_submission WHERE proassign=" . $proassign . " AND userid=" . $user_id;
+				$data = $DB->get_record_sql($sql, null );
+				
+				echo "</br><b>Student submitted code</b></br></br>";
+				if($data->textsubmission){					
+					echo $data->textcode;
+				}else{	
+					echo "No text submission";
+				}
+				
+				$urlparams = array('id' => $id, 'userid'=>$userid, 'grade'=>2);
+				$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+				$startlink = $OUTPUT->action_link($url, 'Start grading');
+				
+				echo "</br></br>" . $startlink . "</br>";
+				
+				echo "<b>Grading results</b></br>";
+				
+				
+				
+				$OUTPUT->box_end();	
+				$OUTPUT->container_end();
+				echo $this->view_footer();
+				return;
+			}		
+			
 			if($user_id!=0){
+				
+				/********************************************************************************************************/
+				/* view single submission */
+				
+				$urlparams = array('id' => $id);
+				$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+				$backlink = $OUTPUT->action_link($url, 'Back to all');
+				
+				echo "</br>" . $backlink;
+				
 				$sql = "SELECT * FROM mdl_proassign_submission WHERE proassign=" . $proassign . " AND userid=" . $user_id;
 				$data = $DB->get_record_sql($sql, null );
 								
@@ -407,7 +460,10 @@ class proassign{
 				return;
 			}
 			
-			echo "Submission summery of students</br>";
+			/**************************************************************************************************************/
+			/* submission summary */
+			
+			echo "</br>Submission summery of students</br></br>";
 			
 			$course_id = $COURSE->id;
 			
@@ -429,7 +485,7 @@ class proassign{
 					
 					$urlparams = array('id' => $id, 'userid'=>$usr->id);
 					$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
-					$viewlink = $OUTPUT->action_link($url, 'View submission');
+					$viewlink = $OUTPUT->action_link($url, 'Submission details');
 					
 					$urlparams = array('id' => $id, 'userid'=>$usr->id, 'grade'=>1);
 					$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
@@ -457,8 +513,7 @@ class proassign{
 		}
 		
 		/*****************************************************************************************************************/
-		
-		// Student region
+		/* Student region */
 		
 		// Check if the user has submiited earlier
 		
