@@ -348,7 +348,35 @@ class proassign{
 			
 			$course_id = $COURSE->id;
 			
+			//print_r($this->get_course_module());
+			
+			$sql = "SELECT mu.id, mu.username, mu.firstname, mu.lastname, mps.textsubmission FROM mdl_user mu LEFT OUTER JOIN mdl_proassign_submission mps 
+						ON ( mu.id=mps.userid AND mps.proassign={$proassign} )
+					WHERE mu.id IN (SELECT userid FROM mdl_user_enrolments WHERE enrolid IN (SELECT id from mdl_enrol WHERE courseid=$course_id))";			
+			$result_usr = $DB->get_records_sql($sql, null);
+			
+			
+			//$sql = "SELECT * FROM mdl_proassign_submission WHERE proassign={$proassign}";
+			//$result_sub = $DB->get_records_sql($sql, null);
+			
+			//print_r($result_sub);
+			
 			$table = new html_table();
+			
+			$this->add_table_row5($table, "<b>User name</b>", "<b>Name</b>", "<b>Submition state</b>", "<b>Marks</b>", "<b>Action</b>");
+			
+			foreach ($result_usr as $key => $usr) {
+				if($usr->textsubmission){
+					$submission = "Submitted";	
+					$grade = "Not yet graded";
+				}else{
+					$submission = "Not yet submitted";
+					$grade = "--";
+				}
+				
+				
+				$this->add_table_row5($table, $usr->username, $usr->firstname . " " . $usr->lastname, $submission, $grade, null);
+			}
 			
 			echo html_writer::table($table);
 			
@@ -531,6 +559,19 @@ class proassign{
         $row->cells = array($cell1, $cell2);
         $table->data[] = $row;
 	}
+	
+	private function add_table_row5(html_table $table, $col1, $col2, $col3, $col4, $col5) {
+        $row = new html_table_row();
+		
+        $cell1 = new html_table_cell($col1);
+        $cell2 = new html_table_cell($col2);
+        $cell3 = new html_table_cell($col3);
+        $cell4 = new html_table_cell($col4);
+        $cell5 = new html_table_cell($col5);
+        $row->cells = array($cell1, $cell2, $cell3, $cell4, $cell5);
+        $table->data[] = $row;
+	}
+	
 	
 	public function view_submitted_page(){
 		
