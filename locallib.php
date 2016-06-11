@@ -344,6 +344,69 @@ class proassign{
 		
 		if($this->can_manage_assignment()){
 			
+			$user_id = 	optional_param('userid', 0, PARAM_INT);
+			
+			if($user_id!=0){
+				$sql = "SELECT * FROM mdl_proassign_submission WHERE proassign=" . $proassign . " AND userid=" . $user_id;
+				$data = $DB->get_record_sql($sql, null );
+								
+				$sql = "SELECT username, firstname, lastname FROM mdl_user WHERE id=" . $user_id;
+				$stu_data = $DB->get_record_sql($sql, null );
+				
+				$textsubmission = "No";
+				$filesubmission = "No";
+				if($data->textsubmission){
+					$textsubmission = "Yes";
+				}
+				if($data->filesubmission){
+					$filesubmission = "Yes";	
+				}
+
+				$timestamp = $data->datesubmitted;
+				$datesubmitted = date('Y-m-d H:i:s a', $timestamp);
+
+				$marks = "Not yet graded";
+				
+				$urlparams = array('id' => $id, 'userid'=>$user_id, 'grade'=>1);
+				$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+				$gradelink = $OUTPUT->action_link($url, 'Grade now');
+
+				$table = new html_table();
+
+				echo "</br><b>Submition details </b> </br></br>";
+				
+				$this->add_table_row($table, 'User name', $stu_data->username);
+				$this->add_table_row($table, 'Student name', $stu_data->firstname . " " . $stu_data->lastname);
+				$this->add_table_row($table, '', '');
+
+				$this->add_table_row($table, 'Submitted date', $datesubmitted);
+				$this->add_table_row($table, 'Text submission', $textsubmission);
+				$this->add_table_row($table, 'File submission', $filesubmission);
+				$this->add_table_row($table, 'Marks', $marks);
+				$this->add_table_row($table, 'Grading', $gradelink);
+
+				echo html_writer::table($table);
+				
+				echo "</br><b>Student submitted code</b></br></br>";
+				if($data->textsubmission){					
+					echo $data->textcode;
+				}else{	
+					echo "No text submission";
+				}
+				
+				echo "</br></br><b>Student submitted file</b></br></br>";
+				if($data->filesubmission){
+					
+				}else{	
+					echo "No file submission";
+				}
+				
+				$OUTPUT->box_end();	
+				$OUTPUT->container_end();
+				echo $this->view_footer();
+				return;
+			}
+			
 			echo "Submission summery of students</br>";
 			
 			$course_id = $COURSE->id;
@@ -355,27 +418,34 @@ class proassign{
 					WHERE mu.id IN (SELECT userid FROM mdl_user_enrolments WHERE enrolid IN (SELECT id from mdl_enrol WHERE courseid=$course_id))";			
 			$result_usr = $DB->get_records_sql($sql, null);
 			
-			
-			//$sql = "SELECT * FROM mdl_proassign_submission WHERE proassign={$proassign}";
-			//$result_sub = $DB->get_records_sql($sql, null);
-			
-			//print_r($result_sub);
-			
 			$table = new html_table();
 			
-			$this->add_table_row5($table, "<b>User name</b>", "<b>Name</b>", "<b>Submition state</b>", "<b>Marks</b>", "<b>Action</b>");
+			$this->add_table_row5($table, "<b>User name</b>", "<b>Name</b>", "<b>Submission state</b>", "<b>Marks</b>", "<b>View</b>", "<b>Action</b>");
 			
 			foreach ($result_usr as $key => $usr) {
 				if($usr->textsubmission){
 					$submission = "Submitted";	
 					$grade = "Not yet graded";
+					
+					$urlparams = array('id' => $id, 'userid'=>$usr->id);
+					$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+					$viewlink = $OUTPUT->action_link($url, 'View submission');
+					
+					$urlparams = array('id' => $id, 'userid'=>$usr->id, 'grade'=>1);
+					$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+					$actionlink = $OUTPUT->action_link($url, 'Grade');
 				}else{
 					$submission = "Not yet submitted";
 					$grade = "--";
+					$viewlink = "--";
+					
+					$actionlink = "--";
 				}
 				
 				
-				$this->add_table_row5($table, $usr->username, $usr->firstname . " " . $usr->lastname, $submission, $grade, null);
+				
+				
+				$this->add_table_row5($table, $usr->username, $usr->firstname . " " . $usr->lastname, $submission, $grade, $viewlink, $actionlink);
 			}
 			
 			echo html_writer::table($table);
@@ -560,7 +630,7 @@ class proassign{
         $table->data[] = $row;
 	}
 	
-	private function add_table_row5(html_table $table, $col1, $col2, $col3, $col4, $col5) {
+	private function add_table_row5(html_table $table, $col1, $col2, $col3, $col4, $col5, $col6) {
         $row = new html_table_row();
 		
         $cell1 = new html_table_cell($col1);
@@ -568,7 +638,8 @@ class proassign{
         $cell3 = new html_table_cell($col3);
         $cell4 = new html_table_cell($col4);
         $cell5 = new html_table_cell($col5);
-        $row->cells = array($cell1, $cell2, $cell3, $cell4, $cell5);
+        $cell6 = new html_table_cell($col6);
+        $row->cells = array($cell1, $cell2, $cell3, $cell4, $cell5, $cell6);
         $table->data[] = $row;
 	}
 	
