@@ -465,7 +465,9 @@ class proassign{
 				
 				echo "</br><b>Student submitted code</b></br></br>";
 				if($data->textsubmission){					
-					echo $data->textcode;
+					$text_code = $data->textcode;
+					$text_code_box = "<textarea rows='8' cols='100' readonly>" . $text_code . "</textarea>";
+					echo $text_code_box;
 				}else{	
 					echo "No text submission";
 				}
@@ -504,6 +506,35 @@ class proassign{
 					$refreshlink = $OUTPUT->action_link($url, 'Refresh result');
 					
 					echo "</br>" . $refreshlink . "</br>";
+				}else if($gra_data->state == 3){
+					echo "</br>Code running completed</br></br>";
+					
+					$sql = "SELECT * FROM mdl_proassign WHERE id=" . $proassign;
+					$pro_data = $DB->get_record_sql($sql, null );
+					
+					$table = new html_table();
+			
+					$this->add_table_row($table, "<b>Expecting output</b>", "<b>Student's output</b>");
+					$this->add_table_row($table, "", "");
+					
+					for($i=1; $i<4; $i=$i+1){
+						$this->add_table_row($table, "--- testcase #" . $i, "");	
+						
+						$name = "output" . $i;
+						
+						$cell1_data = $pro_data->$name;
+						$cell2_data = $gra_data->$name;
+						
+						$cell1 = "<textarea rows='4' cols='50' readonly>" . $cell1_data . "</textarea>";
+						$cell2 = "<textarea rows='4' cols='50' readonly>" . $cell2_data . "</textarea>";
+						
+						$this->add_table_row($table, $cell1, $cell2);
+						$this->add_table_row($table, "Marks", "");
+						$this->add_table_row($table, "", "");
+					}
+					
+					echo html_writer::table($table);
+					
 				}else{
 					
 				}

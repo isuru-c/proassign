@@ -46,31 +46,38 @@ else:
 	except: db.rollback()
 		
 in_list = []
-count = 0;
 		
 if pro_data[11] == 1:
-	tmp_list = pro_data[12].split("\r\n")
-	in_list.append(tmp_list)		
+	in_list.append(pro_data[12])		
 if pro_data[16] == 1:
-	tmp_list = pro_data[17].split("\r\n")
-	in_list.append(tmp_list)		
+	in_list.append(pro_data[17])		
 if pro_data[21] == 1:
-	tmp_list = pro_data[22].split("\r\n")
-	in_list.append(tmp_list)
+	in_list.append(pro_data[22])
 
 # creating the input list for testing is completed
 	
+#file_name = "one.py"	
+	
 path = "/var/www/html/moodle/mod/proassign/runner/codes/" + file_name
 	
-count = len(in_list)	
-i = 0	
+out_list = []
+
+for input_data in in_list:
+	try:	
+		pipe = subprocess.Popen(["python", path],  stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+		pipe.stdin.write(input_data)
+		out, err = pipe.communicate()
+		out = out[:len(out)-1]
+		out_list.append(out)
+	except:
+		print sys.exc_info()
 	
-pipe = subprocess.Popen(["python", path], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-for test_input in in_list[i]:
-	print test_input
-	pipe.stdin.write(test_input)
-#out, err = p.communicate()
-
-print out
-
+state = "3"
+sql = "UPDATE mdl_proassign_grades SET output1='" + out_list[0] + "', output2='" + out_list[1] + "', output3='" + out_list[2] + "', state='" + state + "' WHERE submission=" + submission_id
+	
+try:
+	cursor.execute(sql)
+	db.commit()
+except: db.rollback()
+		
 db.close()
