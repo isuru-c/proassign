@@ -512,12 +512,22 @@ class proassign{
 					$sql = "SELECT * FROM mdl_proassign WHERE id=" . $proassign;
 					$pro_data = $DB->get_record_sql($sql, null );
 					
+					$total_marks = $pro_data->mark1 + $pro_data->mark2 + $pro_data->mark3;
+					$stu_marks = $gra_data->grade1 + $gra_data->grade2 + $gra_data->grade3;
+					
+					echo "</br>Marks for the submission -- {$stu_marks} out of {$total_marks} </br></br>";
+					
 					$table = new html_table();
 			
 					$this->add_table_row($table, "<b>Expecting output</b>", "<b>Student's output</b>");
 					$this->add_table_row($table, "", "");
 					
 					for($i=1; $i<4; $i=$i+1){
+						$name = "use" . $i;
+						if($pro_data->$name == 0){
+							break;
+						}
+						
 						$this->add_table_row($table, "--- testcase #" . $i, "");	
 						
 						$name = "output" . $i;
@@ -525,11 +535,15 @@ class proassign{
 						$cell1_data = $pro_data->$name;
 						$cell2_data = $gra_data->$name;
 						
+						$grade_n = "grade" . $i;
+						$mark_n = "mark" . $i;
+						$cell3 = "Marks - <b>{$gra_data->$grade_n}</b></br> [ max = {$pro_data->$mark_n}]";
+						
 						$cell1 = "<textarea rows='4' cols='50' readonly>" . $cell1_data . "</textarea>";
 						$cell2 = "<textarea rows='4' cols='50' readonly>" . $cell2_data . "</textarea>";
 						
 						$this->add_table_row($table, $cell1, $cell2);
-						$this->add_table_row($table, "Marks", "");
+						$this->add_table_row($table, $cell3, "");
 						$this->add_table_row($table, "", "");
 					}
 					
