@@ -1,6 +1,6 @@
 import sys
+import subprocess
 import MySQLdb
-from subprocess import call
 
 if(len(sys.argv) < 2):
 	print("Not enough data given")
@@ -23,6 +23,15 @@ data = cursor.fetchone()
 
 print ("ok")
 
-res = call(["python", "/var/www/html/moodle/mod/proassign/runner/codes/"+file_name])
+#res = call(["python", "/var/www/html/moodle/mod/proassign/runner/codes/"+file_name, "5"])
+
+#res = subprocess.call(["python", "test.py"])
+
+
+p = subprocess.Popen(["python", "test2.py"], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+p.stdin.write("3")
+out, err = p.communicate()
+
+print out
 
 db.close()
