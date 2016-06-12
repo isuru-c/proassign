@@ -347,7 +347,21 @@ class proassign{
 			$user_id = 	optional_param('userid', 0, PARAM_INT);
 			
 			if($grade_n == 2){
-			
+				/********************************************************************************************************/
+				/* start grading */
+				
+				/* call to java program to start a grading process */
+				/* call with the submission id */
+				
+				$sql = "SELECT id FROM mdl_proassign_submission WHERE proassign=" . $proassign . " AND userid=" . $user_id;
+				$data = $DB->get_record_sql($sql, null );
+				
+				$submission_id = $data->id;
+				
+				$command = escapeshellcmd('python runner/runPython.py isuru');
+				$output = shell_exec($command);
+				//$output = exec($command);
+				echo $output;
 				
 				$grade_n = 1;
 			}
