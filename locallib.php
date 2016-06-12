@@ -350,7 +350,7 @@ class proassign{
 				/********************************************************************************************************/
 				/* start grading */
 				
-				/* call to java program to start a grading process */
+				/* call to python script to start a grading process */
 				/* call with the submission id */
 				
 				$sql = "SELECT id, textsubmission, textcode FROM mdl_proassign_submission WHERE proassign=" . $proassign . " AND userid=" . $user_id;
@@ -368,17 +368,17 @@ class proassign{
 				fwrite($file, $text_code);
 				fclose($file);
 				
-				$command = escapeshellcmd("python runner/runPython.py {$filename} {$proassign}");
+				$command = escapeshellcmd("python runner/runPython.py {$filename} {$proassign} {$submission_id}");
 				$output = shell_exec($command);
 				echo $output;
 				
 				$grade_n = 1;
 			}
 			
-			if($grade_n == 1){
+			/*if($grade_n == 1){
 			
 				/********************************************************************************************************/
-				/* view grading page */
+				/* view grading page *
 				
 				$urlparams = array('id' => $id, 'userid'=>$userid);
 				$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
@@ -410,7 +410,7 @@ class proassign{
 				$OUTPUT->container_end();
 				echo $this->view_footer();
 				return;
-			}		
+			}*/		
 			
 			if($user_id!=0){
 				
@@ -470,11 +470,42 @@ class proassign{
 					echo "No text submission";
 				}
 				
-				echo "</br></br><b>Student submitted file</b></br></br>";
+				/*echo "</br></br><b>Student submitted file</b></br></br>";
 				if($data->filesubmission){
 					
 				}else{	
 					echo "No file submission";
+				}*/
+				
+				$urlparams = array('id' => $id, 'userid'=>$userid, 'grade'=>2);
+				$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+				$startlink = $OUTPUT->action_link($url, 'Start grading');
+				
+				echo "</br></br></br>" . $startlink . "</br>";
+				
+				echo "</br><b>Grading results</b></br>";
+				
+				$sql = "SELECT * FROM mdl_proassign_grades WHERE submission=" . $data->id;
+				$gra_data = $DB->get_record_sql($sql, null );
+				
+				if($gra_data->state == 1){
+					echo "</br>Submission is grading...</br>";
+					
+					$urlparams = array('id' => $id, 'userid'=>$userid);
+					$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+					$refreshlink = $OUTPUT->action_link($url, 'Refresh result');
+					
+					echo "</br>" . $refreshlink . "</br>";
+				}else if($gra_data->state == 2){
+					echo "</br>Submission is grading...</br>";	
+					
+					$urlparams = array('id' => $id, 'userid'=>$userid);
+					$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+					$refreshlink = $OUTPUT->action_link($url, 'Refresh result');
+					
+					echo "</br>" . $refreshlink . "</br>";
+				}else{
+					
 				}
 				
 				$OUTPUT->box_end();	
