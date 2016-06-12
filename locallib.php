@@ -358,9 +358,8 @@ class proassign{
 				
 				$submission_id = $data->id;
 				
-				$command = escapeshellcmd('python runner/runPython.py isuru');
+				$command = escapeshellcmd("python runner/runPython.py {$submission_id}");
 				$output = shell_exec($command);
-				//$output = exec($command);
 				echo $output;
 				
 				$grade_n = 1;
