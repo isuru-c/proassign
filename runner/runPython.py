@@ -1,41 +1,28 @@
 import sys
 import MySQLdb
+from subprocess import call
 
 if(len(sys.argv) < 2):
 	print("Not enough data given")
 	exit()
 	
-submission_id = sys.argv[1]
+file_name = sys.argv[1]	
+proassign_id = sys.argv[2]
 
 # create the database connection
 
 db = MySQLdb.connect("localhost","root","ic","moodle" )
 cursor = db.cursor()
 
-sql = "SELECT * FROM mdl_proassign_submission WHERE id=" + submission_id
+sql = "SELECT * FROM mdl_proassign WHERE id=" + proassign_id
 cursor.execute(sql)
 
 data = cursor.fetchone()
 
-proassingn_id = data[1]
-text_submission = data[4]
+# everything is ready to run the file, send ok msg to web server and start grading
 
-if text_submission==0:
-	print ("No text submission, can not grade the submission")
-	exit()
-	
-text_data = data[5]
+print ("ok")
 
-# save the code in a file, so it can be executed
-
-file_name = "codes/tmp_" + submission_id + ".py"
-
-fo = open(file_name, "w")
-fo.write(text_data)
-
-fo.close()
-
-print (data[5])
-
+res = call(["python", "/var/www/html/moodle/mod/proassign/runner/codes/"+file_name])
 
 db.close()

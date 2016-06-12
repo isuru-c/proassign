@@ -353,12 +353,22 @@ class proassign{
 				/* call to java program to start a grading process */
 				/* call with the submission id */
 				
-				$sql = "SELECT id FROM mdl_proassign_submission WHERE proassign=" . $proassign . " AND userid=" . $user_id;
+				$sql = "SELECT id, textsubmission, textcode FROM mdl_proassign_submission WHERE proassign=" . $proassign . " AND userid=" . $user_id;
 				$data = $DB->get_record_sql($sql, null );
 				
 				$submission_id = $data->id;
+				$text_submission = $data->textsubmission;
+				$text_code = $data->textcode;
 				
-				$command = escapeshellcmd("python runner/runPython.py {$submission_id}");
+				/* write code to a file for execution */
+				
+				$filename = "submitted_code_" . $submission_id . ".py";
+				
+				$file = fopen("/var/www/html/moodle/mod/proassign/runner/codes/{$filename}", "w");
+				fwrite($file, $text_code);
+				fclose($file);
+				
+				$command = escapeshellcmd("python runner/runPython.py {$filename} {$proassign}");
 				$output = shell_exec($command);
 				echo $output;
 				
