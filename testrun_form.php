@@ -47,21 +47,20 @@ class mod_proassign_testrun_form extends moodleform {
         
 		$data = $this->get_data();
 		
-		//$mform->addElement('header', 'headersubmission', 'Submission');
-        //Identification info
         $mform->addElement('hidden','id');
         $mform->setType('id', PARAM_INT);
         //$mform->addElement('hidden','userid',0);
         //$mform->setType('userid', PARAM_INT);
-        //Comments
+        
 		$mform->addElement('static', 'I', 'Important', 'Pleae verify that there is no any infinite loops in the code');
         $mform->addElement('textarea', 'code', 'Enter your solution', array('cols'=>'100', 'rows'=>10));
         $mform->setType('code', PARAM_TEXT);
 
         //Files upload
-        $instance = $this->proassign->get_instance();
+        //$instance = $this->proassign->get_instance();
         //$mform->addElement('filepicker', 'file', 'File submission');
         $this->add_action_buttons(TRUE, "Run");
+
     }
 }
 

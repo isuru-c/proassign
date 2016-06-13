@@ -354,6 +354,9 @@ class proassign{
 		
 		$data = new stdClass();
 		$data->id = $id;
+		$data->output = '';
+		
+		$time = '';
 		
 		if($form_data){
 			
@@ -367,7 +370,8 @@ class proassign{
 				
 			$command = escapeshellcmd("python runner/testPython.py {$filename} {$proassign}");
 			$output = shell_exec($command);
-			echo $output;
+			
+			$time = $output;
 			
 			$data->code = $text_code;
 		}else{
@@ -377,6 +381,62 @@ class proassign{
 		
 		$mform->set_data($data);
 		$mform->display();
+		
+		if($time){
+			
+			echo "</br><b>Test run results</b></br></br>";
+			
+			$sql = "SELECT * FROM mdl_proassign WHERE id=" . $proassign;
+			$pro_data = $DB->get_record_sql($sql, null );
+			
+			$sql = "SELECT * FROM mdl_proassign_test WHERE time=" . $time;
+			$test_data = $DB->get_record_sql($sql, null );
+			
+			//print_r($test_data);
+			
+			$table = new html_table();
+			
+			$this->add_table_row($table, "<b>Expecting output</b>", "<b>Student's output</b>");
+			$this->add_table_row($table, "", "");
+					
+			for($i=1; $i<4; $i=$i+1){
+				$name = "use" . $i;
+				if($pro_data->$name == 0){
+					break;
+				}
+				
+				$name = "visible" . $i;
+				if($pro_data->$name == 0){
+					continue;
+				}
+					
+				$this->add_table_row($table, "--- testcase #" . $i, "");	
+					
+				$name = "output" . $i;					
+				$cell1_data = $pro_data->$name;
+				
+				$name = "out" . $i;
+				$cell2_data = $test_data->$name;
+				$name = "err" . $i;
+				$cell2_data .= $test_data->$name;
+						
+				//$grade_n = "grade" . $i;
+				//$mark_n = "mark" . $i;
+				//$cell3 = "Marks - <b>{$gra_data->$grade_n}</b></br> [ max = {$pro_data->$mark_n}]";
+					
+				$cell1 = "<textarea rows='4' cols='50' readonly>" . $cell1_data . "</textarea>";
+				$cell2 = "<textarea rows='4' cols='50' readonly>" . $cell2_data . "</textarea>";
+					
+				$this->add_table_row($table, $cell1, $cell2);
+				//$this->add_table_row($table, $cell3, "");
+				$this->add_table_row($table, "", "");
+			}
+					
+			echo html_writer::table($table);
+			
+			
+			
+		}
 		
 		$OUTPUT->box_end();	
 		$OUTPUT->container_end();
