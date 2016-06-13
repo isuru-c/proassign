@@ -496,6 +496,12 @@ class proassign{
 				$sql = "SELECT username, firstname, lastname FROM mdl_user WHERE id=" . $user_id;
 				$stu_data = $DB->get_record_sql($sql, null );
 				
+				$sql = "SELECT * FROM mdl_proassign_grades WHERE submission=" . $data->id;
+				$gra_data = $DB->get_record_sql($sql, null );
+				
+				$sql = "SELECT * FROM mdl_proassign WHERE id=" . $proassign;
+				$pro_data = $DB->get_record_sql($sql, null );
+				
 				$textsubmission = "No";
 				$filesubmission = "No";
 				if($data->textsubmission){
@@ -508,9 +514,41 @@ class proassign{
 				$timestamp = $data->datesubmitted;
 				$datesubmitted = date('Y-m-d H:i:s a', $timestamp);
 
-				$marks = "Not yet graded";
+				if($gra_data){
+					if($gra_data->timegraded){
+						$gradedate = date('Y-m-d H:i:s a', $gra_data->timegraded);
+					}else{
+						$gradedate = "Not graded yet";
+					}
+				}else{
+					$gradedate = "Not graded yet";
+				}
 				
-				$urlparams = array('id' => $id, 'userid'=>$user_id, 'grade'=>1);
+				if($gra_data){
+					if($gra_data->timegraded){
+						if($gra_data->timegraded > $data->datesubmitted){
+							$gradestate = "Grade is valid";
+						}else{
+							$gradestate = "Grade is out of date";
+						}
+					}else{
+						$gradestate = "Grading is running";
+					}
+				}else{
+					$gradestate = "Not graded yet";
+				}
+				
+				
+				$total_marks = $pro_data->mark1 + $pro_data->mark2 + $pro_data->mark3;
+				if($gra_data && $gra_data->state == 3){
+					$stu_marks = $gra_data->grade1 + $gra_data->grade2 + $gra_data->grade3;
+				}else{
+					$stu_data = 0;
+				}
+				
+				$marks = "{$stu_marks} out of {$total_marks}";
+				
+				$urlparams = array('id' => $id, 'userid'=>$user_id, 'grade'=>2);
 				$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
 				$gradelink = $OUTPUT->action_link($url, 'Grade now');
 
@@ -520,13 +558,17 @@ class proassign{
 				
 				$this->add_table_row($table, 'User name', $stu_data->username);
 				$this->add_table_row($table, 'Student name', $stu_data->firstname . " " . $stu_data->lastname);
-				$this->add_table_row($table, '', '');
+				$this->add_table_row($table, '</br>', '');
 
-				$this->add_table_row($table, 'Submitted date', $datesubmitted);
 				$this->add_table_row($table, 'Text submission', $textsubmission);
-				$this->add_table_row($table, 'File submission', $filesubmission);
+				$this->add_table_row($table, 'File submission', $filesubmission);				
+				$this->add_table_row($table, '</br>', '');
+				
+				$this->add_table_row($table, 'Submitted at', $datesubmitted);
+				$this->add_table_row($table, 'Graded at', $gradedate);
 				$this->add_table_row($table, 'Marks', $marks);
-				$this->add_table_row($table, 'Grading', $gradelink);
+				$this->add_table_row($table, 'Graded state', $gradestate);
+				$this->add_table_row($table, '', $gradelink);
 
 				echo html_writer::table($table);
 				
@@ -554,9 +596,6 @@ class proassign{
 				
 				echo "</br><b>Grading results</b></br>";
 				
-				$sql = "SELECT * FROM mdl_proassign_grades WHERE submission=" . $data->id;
-				$gra_data = $DB->get_record_sql($sql, null );
-				
 				if($gra_data->state == 1){
 					echo "</br>Submission is grading...</br>";
 					
@@ -576,8 +615,7 @@ class proassign{
 				}else if($gra_data->state == 3){
 					echo "</br>Code running completed</br></br>";
 					
-					$sql = "SELECT * FROM mdl_proassign WHERE id=" . $proassign;
-					$pro_data = $DB->get_record_sql($sql, null );
+					
 					
 					$total_marks = $pro_data->mark1 + $pro_data->mark2 + $pro_data->mark3;
 					$stu_marks = $gra_data->grade1 + $gra_data->grade2 + $gra_data->grade3;

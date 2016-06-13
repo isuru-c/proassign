@@ -1,6 +1,7 @@
 import sys
 import subprocess
 import MySQLdb
+import time
 
 if(len(sys.argv) < 2):
 	print("Not enough data given")
@@ -73,7 +74,7 @@ for input_data in in_list:
 		print sys.exc_info()
 	
 state = "3"
-sql = "UPDATE mdl_proassign_grades SET output1='" + out_list[0] + "', output2='" + out_list[1] + "', output3='" + out_list[2] + "', state='" + state + "' WHERE submission=" + submission_id
+sql = "UPDATE mdl_proassign_grades SET output1='" + out_list[0] + "', output2='" + out_list[1] + "', output3='" + out_list[2] + "', state='" + state + "', timegraded=" + str(int(time.time())) + " WHERE submission=" + submission_id
 	
 try:
 	cursor.execute(sql)
