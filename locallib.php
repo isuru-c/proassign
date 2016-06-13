@@ -640,6 +640,12 @@ class proassign{
 						$cell1_data = $pro_data->$name;
 						$cell2_data = $gra_data->$name;
 						
+						$name = "error" . $i;
+						
+						if($gra_data->$name){
+							$cell2_data = $gra_data->$name;
+						}
+						
 						$grade_n = "grade" . $i;
 						$mark_n = "mark" . $i;
 						$cell3 = "Marks - <b>{$gra_data->$grade_n}</b></br> [ max = {$pro_data->$mark_n}]";

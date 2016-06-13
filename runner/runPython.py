@@ -62,19 +62,23 @@ if pro_data[21] == 1:
 path = "/var/www/html/moodle/mod/proassign/runner/codes/" + file_name
 	
 out_list = []
+err_list = []
 
 for input_data in in_list:
 	try:	
-		pipe = subprocess.Popen(["python", path],  stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+		pipe = subprocess.Popen(["python", path],  stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 		pipe.stdin.write(input_data)
 		out, err = pipe.communicate()
 		out = out[:len(out)-1]
 		out_list.append(out)
+		err_list.append(err)
 	except:
 		print sys.exc_info()
 	
 state = "3"
-sql = "UPDATE mdl_proassign_grades SET output1='" + out_list[0] + "', output2='" + out_list[1] + "', output3='" + out_list[2] + "', state='" + state + "', timegraded=" + str(int(time.time())) + " WHERE submission=" + submission_id
+sql = "UPDATE mdl_proassign_grades SET output1='" + out_list[0] + "', output2='" + out_list[1] + "', output3='" + out_list[2] + "'" 
+sql += ", error1='" + err_list[0] + "', error2='" + err_list[1] + "', error3='" + err_list[2] + "'"
+sql += ", state='" + state + "', timegraded=" + str(int(time.time())) + " WHERE submission=" + submission_id
 	
 try:
 	cursor.execute(sql)
