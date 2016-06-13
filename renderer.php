@@ -86,6 +86,40 @@ class mod_proassign_renderer extends plugin_renderer_base {
     }
 	
 	public function render_header_links($id){
+		
+		$out = "<style>";
+		$out .= "ul { list-style-type: none; margin: 0; padding: 0;}";
+		$out .= "li {display: inline;}";
+		$out .= "</style>";
+		
+		$out = "<style>";
+		$out .= ".ulul { list-style-type: none; margin: 0; padding: 0; overflow: hidden; border: 1px solid #e7e7e7;}"; // background-color: #f3f3f3; };";
+		$out .= ".lili { display: inline; float: left;}"; // float: left; 
+		$out .= ".lia { display: block; display: inline; color: #666; text-align: center; padding: 14px 16px; text-decoration: none; }";
+		$out .= "li a:hover:not(.active) { background-color: #ddd; }";
+		$out .= "li a.active { color: white; background-color: #4CAF50;}";
+		$out .= "</style>";
+		
+		$out .= "<div>";
+		$out .= "<ul class='ulul'>";
+		
+		$link = "/moodle/mod/proassign/view.php?id={$id}";
+		$out .= "<li class='lili'><a class='lia' href='$link'>Assignment   </a></li>";
+		
+		$link = "/moodle/mod/proassign/view.php?id={$id}&action=testcases";
+		$out .= "<li class='lili'><a class='lia' href='$link'>Test cases </a></li>";
+				
+		$link = "/moodle/mod/proassign/testrun.php?id={$id}&action=testrun";
+		$out .= "<li class='lili'><a class='lia' href='$link'>Test run</a></li>";
+		
+		$link = "/moodle/mod/proassign/submission.php?id={$id}&action=testcases";
+		$out .= "<li class='lili'><a class='lia' href='$link'>Submission </a></li>";
+		
+		$out .= "</ul>";
+		$out .= "</div>";
+		
+		return $out;
+		
 		$out = '';
 		
 		$out .= $this->output->container_start('testcaselinks');

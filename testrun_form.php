@@ -27,7 +27,7 @@ require_once($CFG->libdir . '/formslib.php');
 require_once($CFG->dirroot . '/mod/proassign/locallib.php');
 
 
-class mod_proassign_submission_form extends moodleform {
+class mod_proassign_testrun_form extends moodleform {
 	
     protected $proassign;
 	
@@ -41,31 +41,27 @@ class mod_proassign_submission_form extends moodleform {
     }
 	
     function definition(){
-    	global $CFG;
-		
-		
+    	global $CFG;		
     
 		$mform =& $this->_form;
         
 		$data = $this->get_data();
 		
-		$mform->addElement('header', 'headersubmission', 'Submission');
+		//$mform->addElement('header', 'headersubmission', 'Submission');
         //Identification info
         $mform->addElement('hidden','id');
         $mform->setType('id', PARAM_INT);
-		$mform->addElement('hidden','state');
-        $mform->setType('state', PARAM_INT);
         //$mform->addElement('hidden','userid',0);
         //$mform->setType('userid', PARAM_INT);
         //Comments
-		$mform->addElement('static', 'I', 'Important', 'Do not use file submission yet. It is not completed yet');
-        $mform->addElement('textarea', 'code', 'Enter your solution', array('cols'=>'100', 'rows'=>6));
+		$mform->addElement('static', 'I', 'Important', 'Pleae verify that there is no any infinite loops in the code');
+        $mform->addElement('textarea', 'code', 'Enter your solution', array('cols'=>'100', 'rows'=>10));
         $mform->setType('code', PARAM_TEXT);
 
         //Files upload
         $instance = $this->proassign->get_instance();
-        $mform->addElement('filepicker', 'file', 'File submission');
-        $this->add_action_buttons(TRUE,get_string('submit'));
+        //$mform->addElement('filepicker', 'file', 'File submission');
+        $this->add_action_buttons(TRUE, "Run");
     }
 }
 

@@ -11,6 +11,7 @@ require_once($CFG->dirroot . '/grade/grading/lib.php');
 require_once($CFG->dirroot . '/mod/proassign/renderable.php');
 require_once($CFG->dirroot . '/mod/proassign/renderer.php');
 require_once($CFG->dirroot . '/mod/proassign/submission_form.php');
+require_once($CFG->dirroot . '/mod/proassign/testrun_form.php');
 require_once($CFG->libdir . '/eventslib.php');
 require_once($CFG->libdir . '/portfolio/caller.php');
 
@@ -315,6 +316,72 @@ class proassign{
         }
         return false;
     }
+	
+	public function view_testrun_page() {
+        global $CFG, $USER, $DB, $PAGE, $COURSE, $OUTPUT;
+
+        $PAGE->set_pagelayout('incourse');
+		$PAGE->set_heading($this->get_instance()->name);
+        echo $OUTPUT->header();
+		
+		$heading = format_string($this->get_instance()->name, false, array('context' => $this->get_course_context()));
+        echo $OUTPUT->heading($heading);
+		
+		$id = $this->get_course_module()->id;
+
+		echo $this->render_header_links($id);
+		
+		echo $OUTPUT->container_start('testrun');
+		echo '</br>';
+        echo $OUTPUT->heading('Test run', 4);
+        //echo $OUTPUT->heading('You this panal to check your code before submitting', 6);
+		echo "Use this panal to check your code before submitting</br></br>";
+        echo $OUTPUT->box_start('testrun');
+		
+		$proassign = $this->get_instance()->id;
+		$userid = $USER->id;
+		
+		$mform = new mod_proassign_testrun_form('testrun.php', $this);
+
+		if ($mform->is_cancelled()){
+			$OUTPUT->box_end();	
+			$OUTPUT->container_end();
+			echo $this->view_footer();
+			return;
+		}
+
+		$form_data = $mform->get_data();
+		
+		$data = new stdClass();
+		$data->id = $id;
+		
+		if($form_data){
+			
+			$text_code = $form_data->code;
+			
+			$filename = "test_code_" . $proassign . "_" .  $userid . ".py";
+				
+			$file = fopen("/var/www/html/moodle/mod/proassign/runner/codes/{$filename}", "w");
+			fwrite($file, $text_code);
+			fclose($file);
+				
+			$command = escapeshellcmd("python runner/testPython.py {$filename} {$proassign}");
+			$output = shell_exec($command);
+			echo $output;
+			
+			$data->code = $text_code;
+		}else{
+			$data->code = "";
+			
+		}
+		
+		$mform->set_data($data);
+		$mform->display();
+		
+		$OUTPUT->box_end();	
+		$OUTPUT->container_end();
+		echo $this->view_footer();		
+	}
 			
 	public function view_submission_page() {
         global $CFG, $USER, $DB, $PAGE, $COURSE, $OUTPUT;
@@ -623,33 +690,82 @@ class proassign{
 			
 			/**************************************************************************************************************/
 			
-			// Sabmission have been made, show submission states
+			$st = optional_param('state', 0, PARAM_TEXT);
+
+			if($st == '2'){
+				// Create form if the user ask to edit the submission
+				
+				$mform = new mod_proassign_submission_form('submission.php', $this);
 			
-			
-			$textsubmission = "No";
-			$filesubmission = "No";
-			if($data->textsubmission){
-				$textsubmission = "Yes";
+				$form_data = $mform->get_data();
+				
+				if($form_data){
+					
+					$textcode = $form_data->code;
+					$textsubmission = 1;
+					if($textcode == ''){
+						$textsubmission = 0;
+					}
+					
+					$sql = "update mdl_proassign_submission set 
+						datesubmitted=" . time() . ", textsubmission=" .$textsubmission . ", textcode='" . $textcode ."' where id=" .$data->id;
+					
+					$DB->execute($sql, null);
+					
+					echo "Assignment submission completed</br></br>";
+					
+					$urlparams = array('id' => $id, 'state'=>'1');
+					$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+					$continuelink = $OUTPUT->action_link($url, 'Continue');
+					
+					echo $continuelink;
+				}else{
+					$data1 = new stdClass();
+					$data1->id = $id;
+					$data1->state = 2;
+					$data1->code = $data->textcode;
+					$mform->set_data($data1);
+					$mform->display();
+				}
 			}
-			if($data->filesubmission){
-				$filesubmission = "Yes";	
+			else{
+				// Submission have been made, show submission states
+
+
+				$textsubmission = "No";
+				$filesubmission = "No";
+				if($data->textsubmission){
+					$textsubmission = "Yes";
+				}
+				if($data->filesubmission){
+					$filesubmission = "Yes";	
+				}
+
+				$timestamp = $data->datesubmitted;
+				$datesubmitted = date('Y-m-d H:i:s a', $timestamp);
+
+				$marks = "Not yet graded";
+
+				$table = new html_table();
+
+				echo "</br><b>Assignment has been submitted </b> </br></br>";
+
+				$this->add_table_row($table, 'Submitted date', $datesubmitted);
+				$this->add_table_row($table, 'Text submission', $textsubmission);
+				$this->add_table_row($table, 'File submission', $filesubmission);
+				$this->add_table_row($table, 'Marks', $marks);
+
+				$urlparams = array('id' => $id, 'state'=>'2');
+				$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
+				$editlink = $OUTPUT->action_link($url, 'Edit submission');
+
+				$this->add_table_row($table, '', $editlink);
+
+				echo html_writer::table($table);
+
+				echo "</br>Submitted code</br></br>";
+				echo "<textarea rows='10' cols='50' readonly>" . $data->textcode . "</textarea>";
 			}
-			
-			$timestamp = $data->datesubmitted;
-			$datesubmitted = date('Y-m-d H:i:s a', $timestamp);
-			
-			$marks = "Not yet graded";
-			
-			$table = new html_table();
-			
-			echo "</br><b>Assignment has been submitted </b> </br></br>";
-			
-			$this->add_table_row($table, 'Submitted date', $datesubmitted);
-			$this->add_table_row($table, 'Text submission', $textsubmission);
-			$this->add_table_row($table, 'File submission', $filesubmission);
-			$this->add_table_row($table, 'Marks', $marks);
-						
-			echo html_writer::table($table);
 			
 		}else{
 			$mform = new mod_proassign_submission_form('submission.php', $this);
@@ -673,7 +789,7 @@ class proassign{
 			// Submission saving region
 			
 			if ($form_data){
-				$raw_POST_size = strlen(file_get_contents("php://input"));
+				/*$raw_POST_size = strlen(file_get_contents("php://input"));
 				if($_SERVER['CONTENT_LENGTH'] != $raw_POST_size){
 					$error="NOT SAVED (Http POST error: CONTENT_LENGTH expected ".$_SERVER['CONTENT_LENGTH']." found $raw_POST_size)";
 					notice($error,vpl_mod_href('forms/submission.php','id',$id,'userid',$userid),$vpl->get_course());
@@ -704,10 +820,12 @@ class proassign{
 					$filesubmission = 1;
 				}else{
 					$filesubmission = 0;
-				}
+				}*/
 
 				$error='';
-
+				$filesubmission = 0;
+				$filename = ' ';
+				
 				$textcode = $form_data->code;
 				$textsubmission = 1;
 				if($textcode == ''){
@@ -827,7 +945,10 @@ class proassign{
 		$link = "/moodle/mod/proassign/view.php?id={$id}&action=testcases";
 		$out .= "<li class='lili'><a class='lia' href='$link'>Test cases </a></li>";
 		
-		$link = "/moodle/mod/proassign/submission.php?id={$id}&action=testcases";
+		$link = "/moodle/mod/proassign/testrun.php?id={$id}&action=testrun";
+		$out .= "<li class='lili'><a class='lia' href='$link'>Test run</a></li>";
+		
+		$link = "/moodle/mod/proassign/submission.php?id={$id}&state=1";
 		$out .= "<li class='lili'><a class='lia' href='$link'>Submission </a></li>";
 		
 		$out .= "</ul>";
