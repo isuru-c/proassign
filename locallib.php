@@ -332,10 +332,10 @@ class proassign{
 		echo $this->render_header_links($id);
 		
 		echo $OUTPUT->container_start('testrun');
-		echo '</br>';
+		echo '</br></br>';
         echo $OUTPUT->heading('Test run', 4);
         //echo $OUTPUT->heading('You this panal to check your code before submitting', 6);
-		echo "Use this panal to check your code before submitting</br></br>";
+		echo "Use this panal to check your code before submitting</br>You can check your code with visible test cases</br></br>";
         echo $OUTPUT->box_start('testrun');
 		
 		$proassign = $this->get_instance()->id;
@@ -739,7 +739,7 @@ class proassign{
 			
 			//print_r($this->get_course_module());
 			
-			$sql = "SELECT mu.id, mu.username, mu.firstname, mu.lastname, mps.textsubmission FROM mdl_user mu LEFT OUTER JOIN mdl_proassign_submission mps 
+			$sql = "SELECT mu.id, mu.username, mu.firstname, mu.lastname, mps.textsubmission, mps.id as sub_id FROM mdl_user mu LEFT OUTER JOIN mdl_proassign_submission mps 
 						ON ( mu.id=mps.userid AND mps.proassign={$proassign} )
 					WHERE mu.id IN (SELECT userid FROM mdl_user_enrolments WHERE enrolid IN (SELECT id from mdl_enrol WHERE courseid=$course_id))";			
 			$result_usr = $DB->get_records_sql($sql, null);
@@ -751,7 +751,15 @@ class proassign{
 			foreach ($result_usr as $key => $usr) {
 				if($usr->textsubmission){
 					$submission = "Submitted";	
-					$grade = "Not yet graded";
+					
+					$sql = "SELECT grade1, grade2, grade3 FROM mdl_proassign_grades WHERE submission=" . $usr->sub_id;
+					$gra_data = $DB->get_record_sql($sql, null );
+
+					if($gra_data){
+						$grade = $gra_data->grade1 + $gra_data->grade2 + $gra_data->grade3;
+					}else{
+						$grade = "Not yet graded";
+					}
 					
 					$urlparams = array('id' => $id, 'userid'=>$usr->id);
 					$url = new moodle_url('/mod/proassign/submission.php', $urlparams);
@@ -847,8 +855,15 @@ class proassign{
 
 				$timestamp = $data->datesubmitted;
 				$datesubmitted = date('Y-m-d H:i:s a', $timestamp);
-
-				$marks = "Not yet graded";
+				
+				$sql = "SELECT grade1, grade2, grade3 FROM mdl_proassign_grades WHERE submission=" . $data->id;
+				$gra_data = $DB->get_record_sql($sql, null );
+				
+				if($gra_data){
+					$marks = $gra_data->grade1 + $gra_data->grade2 + $gra_data->grade3;
+				}else{
+					$marks = "Not yet graded";
+				}
 
 				$table = new html_table();
 

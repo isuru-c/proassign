@@ -47,13 +47,17 @@ else:
 	except: db.rollback()
 		
 in_list = []
+ex_list = []
 		
 if pro_data[11] == 1:
-	in_list.append(pro_data[12])		
+	in_list.append(pro_data[12])
+	ex_list.append(pro_data[13])		
 if pro_data[16] == 1:
-	in_list.append(pro_data[17])		
+	in_list.append(pro_data[17])
+	ex_list.append(pro_data[18])		
 if pro_data[21] == 1:
 	in_list.append(pro_data[22])
+	ex_list.append(pro_data[23])
 
 # creating the input list for testing is completed
 	
@@ -74,10 +78,31 @@ for input_data in in_list:
 		err_list.append(err)
 	except:
 		print sys.exc_info()
-	
+
+		
+
+gra_list = []
+
+for k in range(len(ex_list)):
+	grade = pro_data[15+k*5]
+	x = ex_list[0].split('\r\n')
+	y = out_list[0].split('\n')
+
+	if len(x) == len(y):
+		for i in range(len(x)):
+			if x[i] != y[i]:
+				grade = 0
+				break;
+	else:
+		grade = 0
+	gra_list.append(grade)
+		
+		
+		
 state = "3"
 sql = "UPDATE mdl_proassign_grades SET output1='" + out_list[0] + "', output2='" + out_list[1] + "', output3='" + out_list[2] + "'" 
 sql += ", error1='" + err_list[0] + "', error2='" + err_list[1] + "', error3='" + err_list[2] + "'"
+sql += ", grade1=" + str(gra_list[0]) + ", grade2=" + str(gra_list[1]) + ", grade3=" + str(gra_list[2])
 sql += ", state='" + state + "', timegraded=" + str(int(time.time())) + " WHERE submission=" + submission_id
 	
 try:
@@ -86,3 +111,8 @@ try:
 except: db.rollback()
 		
 db.close()
+
+#print ex_list
+#print out_list[0]
+
+#for x in out_list[0]: print x

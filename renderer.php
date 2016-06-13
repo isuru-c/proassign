@@ -33,7 +33,7 @@ class mod_proassign_renderer extends plugin_renderer_base {
 
         $out .= $this->output->box_start('generalbox boxaligncenter', 'intro');
         
-		$out .= '</br><b>Description</b></br>';
+		$out .= '</br><b>Description</b></br></br>';
 		$out .= format_module_intro('proassign', $header->proassign, $header->coursemoduleid);
 		
 		$out .= '</br></br><b>Submission details</b></br>';
@@ -60,6 +60,15 @@ class mod_proassign_renderer extends plugin_renderer_base {
 			$marks = "Not yet grade";
 		}else{
 			$marks = "--";	
+		}
+		
+		$sql = "SELECT grade1, grade2, grade3 FROM mdl_proassign_grades WHERE submission=" . $data->id;
+		$gra_data = $DB->get_record_sql($sql, null );
+				
+		if($gra_data){
+			$marks = $gra_data->grade1 + $gra_data->grade2 + $gra_data->grade3;
+		}else{
+			$marks = "Not yet graded";
 		}
 		
 		$this->add_table_row2($table, "Submission state", $submission_state);
